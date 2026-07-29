@@ -2096,9 +2096,24 @@ impl super::TrapDispatcher {
         num_types: i16,
         type_list_ptr: u32,
     ) {
-        let entries = self.standard_file_get_candidates(bus, num_types, type_list_ptr);
-        let bounds = self.standard_file_get_dialog_bounds();
-        let saved_pixels = self.save_dialog_pixels(bus, bounds);
+        let native = self.native_standard_file_dialogs;
+        let allowed_file_types = Self::standard_file_get_type_list(bus, num_types, type_list_ptr)
+            .unwrap_or_else(|| Some(Vec::new()));
+        let entries = if native {
+            Vec::new()
+        } else {
+            self.standard_file_get_candidates(bus, num_types, type_list_ptr)
+        };
+        let bounds = if native {
+            (0, 0, 0, 0)
+        } else {
+            self.standard_file_get_dialog_bounds()
+        };
+        let saved_pixels = if native {
+            Vec::new()
+        } else {
+            self.save_dialog_pixels(bus, bounds)
+        };
         let tracking = StandardFileGetTrackingState {
             modern_reply,
             reply_ptr,
@@ -2108,8 +2123,17 @@ impl super::TrapDispatcher {
             selected: 0,
             bounds,
             saved_pixels,
+            dir_id: self.default_dir_id,
+            allowed_file_types: allowed_file_types.clone(),
+            native,
         };
-        self.draw_standard_file_get_dialog(bus, &tracking);
+        if native {
+            self.standard_file_dialog_response = None;
+            self.standard_file_dialog_request =
+                Some(crate::standard_file::StandardFileDialogRequest::Open { allowed_file_types });
+        } else {
+            self.draw_standard_file_get_dialog(bus, &tracking);
+        }
         self.standard_file_get_tracking = Some(tracking);
     }
 
@@ -2119,6 +2143,33 @@ impl super::TrapDispatcher {
         bus: &mut MacMemoryBus,
         mut tracking: StandardFileGetTrackingState,
     ) {
+        if tracking.native {
+            match self.standard_file_dialog_response.take() {
+                None => {
+                    self.standard_file_get_tracking = Some(tracking);
+                }
+                Some(crate::standard_file::StandardFileDialogResponse::Cancel) => {
+                    self.finish_standard_file_get_tracking(cpu, bus, tracking, false);
+                }
+                Some(crate::standard_file::StandardFileDialogResponse::Open { name }) => {
+                    tracking.entries = self
+                        .standard_file_get_candidates_in_directory(
+                            tracking.dir_id,
+                            tracking.allowed_file_types.as_deref(),
+                        )
+                        .into_iter()
+                        .filter(|entry| entry.display_name.eq_ignore_ascii_case(&name))
+                        .collect();
+                    let accepted = !tracking.entries.is_empty();
+                    self.finish_standard_file_get_tracking(cpu, bus, tracking, accepted);
+                }
+                Some(crate::standard_file::StandardFileDialogResponse::Save { .. }) => {
+                    self.finish_standard_file_get_tracking(cpu, bus, tracking, false);
+                }
+            }
+            return;
+        }
+
         let mut action = None;
         while let Some(event) = self.event_queue.pop_front() {
             match event.what {
@@ -2163,7 +2214,11 @@ impl super::TrapDispatcher {
         tracking: StandardFileGetTrackingState,
         accepted: bool,
     ) {
-        self.restore_dialog_pixels(bus, tracking.bounds, &tracking.saved_pixels);
+        if !tracking.native {
+            self.restore_dialog_pixels(bus, tracking.bounds, &tracking.saved_pixels);
+        }
+        self.standard_file_dialog_request = None;
+        self.standard_file_dialog_response = None;
         if accepted {
             if let Some(selection) = tracking.entries.get(tracking.selected) {
                 if tracking.modern_reply {
@@ -2350,8 +2405,17 @@ impl super::TrapDispatcher {
         let default_name = standard_file_default_name(bus, default_name_ptr);
         let mut name = decode_mac_roman(&default_name);
         Self::standard_file_clamp_name(&mut name);
-        let bounds = self.standard_file_put_dialog_bounds();
-        let saved_pixels = self.save_dialog_pixels(bus, bounds);
+        let native = self.native_standard_file_dialogs;
+        let bounds = if native {
+            (0, 0, 0, 0)
+        } else {
+            self.standard_file_put_dialog_bounds()
+        };
+        let saved_pixels = if native {
+            Vec::new()
+        } else {
+            self.save_dialog_pixels(bus, bounds)
+        };
         let name_len = name.len().min(i16::MAX as usize) as i16;
         let old_wd_ref = self.standard_file_old_reply_wd_ref();
         let tracking = StandardFilePutTrackingState {
@@ -2368,8 +2432,18 @@ impl super::TrapDispatcher {
             sel_end: name_len,
             bounds,
             saved_pixels,
+            native,
         };
-        self.draw_standard_file_put_dialog(bus, &tracking);
+        if native {
+            self.standard_file_dialog_response = None;
+            self.standard_file_dialog_request =
+                Some(crate::standard_file::StandardFileDialogRequest::Save {
+                    prompt: tracking.prompt.clone(),
+                    default_name: tracking.name.clone(),
+                });
+        } else {
+            self.draw_standard_file_put_dialog(bus, &tracking);
+        }
         self.standard_file_put_tracking = Some(tracking);
     }
 
@@ -2385,6 +2459,27 @@ impl super::TrapDispatcher {
         bus: &mut MacMemoryBus,
         mut tracking: StandardFilePutTrackingState,
     ) {
+        if tracking.native {
+            match self.standard_file_dialog_response.take() {
+                None => {
+                    self.standard_file_put_tracking = Some(tracking);
+                }
+                Some(crate::standard_file::StandardFileDialogResponse::Cancel) => {
+                    self.finish_standard_file_put_tracking(cpu, bus, tracking, false);
+                }
+                Some(crate::standard_file::StandardFileDialogResponse::Save { name }) => {
+                    tracking.name = name;
+                    Self::standard_file_clamp_name(&mut tracking.name);
+                    let accepted = !tracking.name.trim().is_empty();
+                    self.finish_standard_file_put_tracking(cpu, bus, tracking, accepted);
+                }
+                Some(crate::standard_file::StandardFileDialogResponse::Open { .. }) => {
+                    self.finish_standard_file_put_tracking(cpu, bus, tracking, false);
+                }
+            }
+            return;
+        }
+
         let mut action = None;
         while let Some(event) = self.event_queue.pop_front() {
             match event.what {
@@ -2433,7 +2528,11 @@ impl super::TrapDispatcher {
         tracking: StandardFilePutTrackingState,
         accepted: bool,
     ) {
-        self.restore_dialog_pixels(bus, tracking.bounds, &tracking.saved_pixels);
+        if !tracking.native {
+            self.restore_dialog_pixels(bus, tracking.bounds, &tracking.saved_pixels);
+        }
+        self.standard_file_dialog_request = None;
+        self.standard_file_dialog_response = None;
         if accepted {
             let mut name = encode_mac_roman_lossy(&tracking.name);
             if name.is_empty() {
@@ -24028,6 +24127,54 @@ mod tests {
         assert_eq!(cpu.read_reg(Register::D0), 0);
     }
 
+    #[test]
+    fn standard_get_file_native_request_resumes_with_imported_file() {
+        let _env = clear_standard_file_env();
+        let (mut disp, mut cpu, mut bus) = setup();
+        let sp = TEST_SP;
+        let reply_ptr = 0x320D00u32;
+        let type_list_ptr = 0x320E00u32;
+        let documents_dir = disp.ensure_vfs_directory("Documents");
+        disp.default_dir_id = documents_dir;
+        disp.yield_for_ui = true;
+        disp.native_standard_file_dialogs = true;
+        bus.write_long(type_list_ptr, u32::from_be_bytes(*b"BOOL"));
+        bus.write_word(sp, 0x0006);
+        bus.write_long(sp + 2, reply_ptr);
+        bus.write_long(sp + 6, type_list_ptr);
+        bus.write_word(sp + 10, 1);
+        bus.write_long(sp + 12, 0);
+
+        disp.dispatch_toolbox(true, 0x1EA, &mut cpu, &mut bus)
+            .unwrap()
+            .unwrap();
+        assert_eq!(cpu.read_reg(Register::A7), sp);
+        assert_eq!(
+            disp.standard_file_dialog_request.take(),
+            Some(crate::standard_file::StandardFileDialogRequest::Open {
+                allowed_file_types: Some(vec![u32::from_be_bytes(*b"BOOL")]),
+            })
+        );
+
+        disp.vfs
+            .insert("Documents/Boolean Test".to_string(), vec![1, 2, 3]);
+        disp.set_vfs_entry_metadata("Documents/Boolean Test", *b"BOOL", *b"TEST", 0x4000);
+        disp.standard_file_dialog_response =
+            Some(crate::standard_file::StandardFileDialogResponse::Open {
+                name: "Boolean Test".to_string(),
+            });
+        disp.dispatch_toolbox(true, 0x1EA, &mut cpu, &mut bus)
+            .unwrap()
+            .unwrap();
+
+        assert!(!disp.is_standard_file_get_tracking());
+        assert_eq!(bus.read_byte(reply_ptr), 1);
+        assert_eq!(bus.read_long(reply_ptr + 2), u32::from_be_bytes(*b"BOOL"));
+        assert_eq!(bus.read_long(reply_ptr + 8), documents_dir);
+        assert_eq!(bus.read_pstring(reply_ptr + 12), b"Boolean Test".to_vec());
+        assert_eq!(cpu.read_reg(Register::A7), sp + 16);
+    }
+
     // Pack3 / Standard File ($A9EA) — SFGetFile selector $0002
     // IM:Files 1992 pp. 3-53 and 3-61; IM:I I-523..I-526.
     #[test]
@@ -24264,6 +24411,52 @@ mod tests {
         assert_eq!(bus.read_pstring(reply_ptr + 12), b"Rick".to_vec());
         assert_eq!(cpu.read_reg(Register::A7), sp + 14);
         assert_eq!(cpu.read_reg(Register::D0), 0);
+    }
+
+    #[test]
+    fn standard_put_file_native_request_returns_host_selected_name() {
+        let (mut disp, mut cpu, mut bus) = setup();
+        let sp = TEST_SP;
+        let reply_ptr = 0x3201C0u32;
+        let prompt_ptr = 0x320300u32;
+        let default_name_ptr = 0x320340u32;
+        let documents_dir = disp.ensure_vfs_directory("Documents");
+        disp.default_dir_id = documents_dir;
+        disp.app_wd_refnum = crate::trap::dispatch::TrapDispatcher::boot_volume_ref_num();
+        disp.yield_for_ui = true;
+        disp.native_standard_file_dialogs = true;
+        bus.write_pstring(prompt_ptr, b"Save document:");
+        bus.write_pstring(default_name_ptr, b"Untitled");
+        bus.write_word(sp, 0x0005);
+        bus.write_long(sp + 2, reply_ptr);
+        bus.write_long(sp + 6, default_name_ptr);
+        bus.write_long(sp + 10, prompt_ptr);
+
+        disp.dispatch_toolbox(true, 0x1EA, &mut cpu, &mut bus)
+            .unwrap()
+            .unwrap();
+        assert_eq!(cpu.read_reg(Register::A7), sp);
+        assert_eq!(
+            disp.standard_file_dialog_request.take(),
+            Some(crate::standard_file::StandardFileDialogRequest::Save {
+                prompt: "Save document:".to_string(),
+                default_name: "Untitled".to_string(),
+            })
+        );
+
+        disp.standard_file_dialog_response =
+            Some(crate::standard_file::StandardFileDialogResponse::Save {
+                name: "Boolean Test".to_string(),
+            });
+        disp.dispatch_toolbox(true, 0x1EA, &mut cpu, &mut bus)
+            .unwrap()
+            .unwrap();
+
+        assert!(!disp.is_standard_file_put_tracking());
+        assert_eq!(bus.read_byte(reply_ptr), 1);
+        assert_eq!(bus.read_long(reply_ptr + 8), documents_dir);
+        assert_eq!(bus.read_pstring(reply_ptr + 12), b"Boolean Test".to_vec());
+        assert_eq!(cpu.read_reg(Register::A7), sp + 14);
     }
 
     // Pack3 / Standard File ($A9EA) + HighLevelFSDispatch ($AA52)

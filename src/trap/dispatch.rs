@@ -505,6 +505,7 @@ pub(crate) struct StandardFilePutTrackingState {
     pub sel_end: i16,
     pub bounds: (i16, i16, i16, i16),
     pub saved_pixels: Vec<u8>,
+    pub native: bool,
 }
 
 /// Candidate file shown by a retained Standard File get dialog.
@@ -534,6 +535,9 @@ pub(crate) struct StandardFileGetTrackingState {
     pub selected: usize,
     pub bounds: (i16, i16, i16, i16),
     pub saved_pixels: Vec<u8>,
+    pub dir_id: u32,
+    pub allowed_file_types: Option<Vec<u32>>,
+    pub native: bool,
 }
 
 /// Popup-menu control state owned by an active ModalDialog loop.
@@ -1743,6 +1747,12 @@ pub struct TrapDispatcher {
     pub(crate) standard_file_put_tracking: Option<StandardFilePutTrackingState>,
     /// Active Standard File Package open dialog tracking state.
     pub(crate) standard_file_get_tracking: Option<StandardFileGetTrackingState>,
+    /// Native frontend replacement for the Standard File Package dialogs.
+    pub(crate) native_standard_file_dialogs: bool,
+    pub(crate) standard_file_dialog_request:
+        Option<crate::standard_file::StandardFileDialogRequest>,
+    pub(crate) standard_file_dialog_response:
+        Option<crate::standard_file::StandardFileDialogResponse>,
     /// Parsed dialog items keyed by dialog pointer, for GetDItem/ModalDialog
     pub dialog_items: HashMap<u32, Vec<DialogItem>>,
     /// Original rects for items hidden via HideDialogItem,
@@ -2976,6 +2986,9 @@ impl TrapDispatcher {
             dialog_tracking: None,
             standard_file_put_tracking: None,
             standard_file_get_tracking: None,
+            native_standard_file_dialogs: false,
+            standard_file_dialog_request: None,
+            standard_file_dialog_response: None,
             dialog_items: HashMap::new(),
             hidden_dialog_item_rects: HashMap::new(),
             dialog_item_handles: HashMap::new(),

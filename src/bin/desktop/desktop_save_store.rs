@@ -19,6 +19,10 @@ pub struct DesktopSaveStore {
     last_vfs_fingerprints: HashMap<String, SaveFingerprint>,
     persisted_save_paths: HashSet<String>,
     save_scan_frame: u8,
+    #[cfg(target_os = "macos")]
+    external_paths: HashMap<String, PathBuf>,
+    #[cfg(target_os = "macos")]
+    pending_external_exports: HashSet<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -86,11 +90,23 @@ impl DesktopSaveStore {
             last_vfs_fingerprints: HashMap::new(),
             persisted_save_paths: HashSet::new(),
             save_scan_frame: 0,
+            #[cfg(target_os = "macos")]
+            external_paths: HashMap::new(),
+            #[cfg(target_os = "macos")]
+            pending_external_exports: HashSet::new(),
         }
     }
 
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    /// Associate a guest VFS file with a user-selected host path. Subsequent
+    /// guest writes are mirrored there with both forks and Finder metadata.
+    #[cfg(target_os = "macos")]
+    pub fn bind_external_path(&mut self, vfs_path: String, host_path: PathBuf) {
+        self.pending_external_exports.insert(vfs_path.clone());
+        self.external_paths.insert(vfs_path, host_path);
     }
 
     pub fn load_saved_files(&mut self) -> Vec<VfsFileSnapshot> {
@@ -127,7 +143,12 @@ impl DesktopSaveStore {
         let mut next_persisted_paths = HashSet::new();
 
         for stat in stats {
+            #[cfg(target_os = "macos")]
+            let needs_external_export = self.pending_external_exports.contains(&stat.path);
+            #[cfg(not(target_os = "macos"))]
+            let needs_external_export = false;
             if !self.persisted_save_paths.contains(&stat.path)
+                && !needs_external_export
                 && self
                     .archive_vfs_stats
                     .get(&stat.path)
@@ -147,9 +168,12 @@ impl DesktopSaveStore {
             };
             if self.last_vfs_fingerprints.get(&summary.path) != Some(&fingerprint)
                 || !self.persisted_save_paths.contains(&summary.path)
+                || needs_external_export
             {
                 match self.persist_save_file(&snapshot) {
                     Ok(()) => {
+                        #[cfg(target_os = "macos")]
+                        self.pending_external_exports.remove(&summary.path);
                         eprintln!(
                             "[SYSTEMLESS] Saved desktop file: {}",
                             self.save_dir_for_vfs_path(&snapshot.path).display()
@@ -210,6 +234,10 @@ impl DesktopSaveStore {
         let metadata = serde_json::to_vec_pretty(&metadata)
             .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
         fs::write(dir.join(METADATA_FILE), metadata)?;
+        #[cfg(target_os = "macos")]
+        if let Some(path) = self.external_paths.get(&file.path) {
+            crate::native_standard_file::write_classic_file(path, file)?;
+        }
         Ok(())
     }
 
@@ -490,6 +518,10 @@ mod tests {
             last_vfs_fingerprints: HashMap::new(),
             persisted_save_paths: HashSet::new(),
             save_scan_frame: 0,
+            #[cfg(target_os = "macos")]
+            external_paths: HashMap::new(),
+            #[cfg(target_os = "macos")]
+            pending_external_exports: HashSet::new(),
         };
         let original = snapshot("EV Override 1.0.1/Pilots/Rick Hardslab");
 
@@ -518,6 +550,28 @@ mod tests {
 
         let loaded = load_saved_files_from_root(store.root()).unwrap();
         assert_eq!(loaded, vec![packaged]);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn new_external_binding_exports_an_unchanged_existing_file() {
+        let temp = tempfile::tempdir().unwrap();
+        let game_path = temp.path().join("Archive.dsk");
+        let host_path = temp.path().join("Selected Save");
+        let mut runner = FixtureRunner::new(8 * 1024 * 1024, FixtureRunnerConfig::default());
+        let packaged = snapshot("Documents/Selected Save");
+        runner.import_vfs_file(&packaged);
+        let mut store = DesktopSaveStore::for_loaded_archive(&game_path, &mut runner);
+
+        store.bind_external_path(packaged.path.clone(), host_path.clone());
+        store.sync_save_files_now(&mut runner);
+
+        let exported = crate::native_standard_file::read_classic_file(&host_path).unwrap();
+        assert_eq!(exported.data_fork, packaged.data_fork);
+        assert_eq!(exported.resource_fork, packaged.resource_fork);
+        assert_eq!(exported.file_type, packaged.file_type);
+        assert_eq!(exported.creator, packaged.creator);
+        assert_eq!(exported.finder_flags, packaged.finder_flags);
     }
 
     #[test]

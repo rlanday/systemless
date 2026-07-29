@@ -37,6 +37,7 @@ mod types;
 mod window;
 
 pub use dispatch::TrapDispatcher;
+pub(crate) use types::{decode_mac_roman, encode_mac_roman_lossy};
 
 /// Test helpers for inline trap unit tests within this crate.
 /// Gated behind #[cfg(test)] so it does NOT ship in the production library.

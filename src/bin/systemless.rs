@@ -22,6 +22,9 @@ mod metal_present;
 #[cfg(target_os = "macos")]
 #[path = "desktop/native_menu.rs"]
 mod native_menu;
+#[cfg(target_os = "macos")]
+#[path = "desktop/native_standard_file.rs"]
+mod native_standard_file;
 
 #[cfg(not(target_os = "macos"))]
 use std::num::NonZeroU32;
@@ -527,6 +530,8 @@ impl App {
         }
         game::init_game(&mut runner, &app);
         runner.set_arrows_as_numpad(self.arrows_as_numpad);
+        #[cfg(target_os = "macos")]
+        runner.set_native_standard_file_dialogs(true);
 
         // Configure realtime instructions/tick budget so the wall-clock-paced
         // GUI can actually make progress per frame. Without this the runner
@@ -570,6 +575,82 @@ impl App {
         } else {
             save_store.sync_save_files(runner);
         }
+    }
+
+    #[cfg(target_os = "macos")]
+    fn service_native_standard_file_dialog(&mut self) {
+        let request = self
+            .runner
+            .as_mut()
+            .and_then(FixtureRunner::take_standard_file_dialog_request);
+        let Some(request) = request else {
+            return;
+        };
+
+        let Some(host_path) = native_standard_file::run_dialog(&request) else {
+            if let Some(runner) = self.runner.as_mut() {
+                runner.cancel_standard_file_dialog();
+            }
+            self.reset_realtime_after_modal_panel();
+            return;
+        };
+
+        let result = match &request {
+            systemless::standard_file::StandardFileDialogRequest::Open { .. } => {
+                native_standard_file::read_classic_file(&host_path)
+                    .map_err(|err| err.to_string())
+                    .and_then(|snapshot| {
+                        self.runner
+                            .as_mut()
+                            .expect("dialog request requires a runner")
+                            .complete_standard_file_open(&snapshot)
+                    })
+            }
+            systemless::standard_file::StandardFileDialogRequest::Save { .. } => host_path
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .ok_or_else(|| "save destination has no filename".to_string())
+                .and_then(|name| {
+                    self.runner
+                        .as_mut()
+                        .expect("dialog request requires a runner")
+                        .complete_standard_file_save(&name)
+                }),
+        };
+        match result {
+            Ok(vfs_path) => {
+                eprintln!(
+                    "[SYSTEMLESS] Native Standard File binding: {} -> {}",
+                    vfs_path,
+                    host_path.display()
+                );
+                if let Some(store) = self.save_store.as_mut() {
+                    store.bind_external_path(vfs_path, host_path);
+                }
+            }
+            Err(err) => {
+                eprintln!("[SYSTEMLESS] Native file dialog selection failed: {err}");
+                if let Some(runner) = self.runner.as_mut() {
+                    runner.cancel_standard_file_dialog();
+                }
+            }
+        }
+        self.reset_realtime_after_modal_panel();
+    }
+
+    #[cfg(target_os = "macos")]
+    fn reset_realtime_after_modal_panel(&mut self) {
+        let now = std::time::Instant::now();
+        if let Some(runner) = self.runner.as_ref() {
+            self.start_time = Some(Self::wall_clock_origin_for_guest_tick(
+                now,
+                runner.guest_tick(),
+            ));
+        }
+        self.next_frame_time = Some(now + FRAME_DURATION);
+        self.next_cpu_budget_time = Some(now);
+        self.cpu_instruction_credit = 0.0;
+        self.last_audio_mix_time = Some(now);
     }
 
     fn cpu_budget_for_duration(duration: std::time::Duration, ips: f64, credit: &mut f64) -> usize {
@@ -1730,6 +1811,8 @@ impl ApplicationHandler for App {
 
         // Step emulation, then render
         self.step_frame();
+        #[cfg(target_os = "macos")]
+        self.service_native_standard_file_dialog();
         self.sync_save_files(false);
 
         #[cfg(target_os = "macos")]

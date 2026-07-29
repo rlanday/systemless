@@ -54,6 +54,7 @@ pub mod runner;
 #[cfg(feature = "test-support")]
 pub mod scripted_traces;
 pub mod sound;
+pub mod standard_file;
 pub mod trace;
 pub mod trap;
 mod ui_art;

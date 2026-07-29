@@ -9,6 +9,7 @@ use crate::loader::{
 use crate::managers::resource::ResourceFork;
 use crate::memory::{MacMemoryBus, MemoryBus};
 use crate::menu_model::GuestMenuSnapshot;
+use crate::standard_file::{StandardFileDialogRequest, StandardFileDialogResponse};
 use crate::trap::TrapDispatcher;
 use crate::ui_theme::{ThemeMetricsMode, UiTheme, UiThemeId};
 use crate::{Error, Result};
@@ -1673,6 +1674,109 @@ impl FixtureRunner {
                 metadata.modified_date = file.modified_date;
             }
         }
+    }
+
+    /// Let the host frontend replace retained Standard File Package dialogs
+    /// with native modal file pickers. The emulated dialogs remain the
+    /// fallback when this is disabled.
+    pub fn set_native_standard_file_dialogs(&mut self, enabled: bool) {
+        self.dispatcher.native_standard_file_dialogs = enabled;
+        if !enabled {
+            self.dispatcher.standard_file_dialog_request = None;
+            self.dispatcher.standard_file_dialog_response = None;
+        }
+    }
+
+    /// Take the next native Standard File request. Taking is one-shot so a
+    /// frontend event loop cannot accidentally open the same panel twice.
+    pub fn take_standard_file_dialog_request(&mut self) -> Option<StandardFileDialogRequest> {
+        self.dispatcher.standard_file_dialog_request.take()
+    }
+
+    /// Cancel the suspended Standard File call.
+    pub fn cancel_standard_file_dialog(&mut self) {
+        self.dispatcher.standard_file_dialog_response = Some(StandardFileDialogResponse::Cancel);
+    }
+
+    /// Import a host-selected file into the directory visible to the guest and
+    /// resume StandardGetFile with that file selected.
+    pub fn complete_standard_file_open(
+        &mut self,
+        file: &VfsFileSnapshot,
+    ) -> std::result::Result<String, String> {
+        let tracking = self
+            .dispatcher
+            .standard_file_get_tracking
+            .as_ref()
+            .filter(|tracking| tracking.native)
+            .ok_or_else(|| "no native Standard File open dialog is pending".to_string())?;
+        if tracking
+            .allowed_file_types
+            .as_ref()
+            .is_some_and(|types| !types.contains(&file.file_type))
+        {
+            return Err(format!(
+                "selected file type {:?} is not accepted by the guest",
+                file.file_type.to_be_bytes().map(char::from)
+            ));
+        }
+        let name = Self::standard_file_guest_name(TrapDispatcher::vfs_basename(&file.path));
+        if name.is_empty() {
+            return Err("selected file has no Classic Macintosh filename".to_string());
+        }
+        let target_path = self.standard_file_target_path(tracking.dir_id, &name)?;
+        let mut imported = file.clone();
+        imported.path = target_path.clone();
+        self.import_vfs_file(&imported);
+        self.dispatcher.standard_file_dialog_response =
+            Some(StandardFileDialogResponse::Open { name });
+        Ok(target_path)
+    }
+
+    /// Resume StandardPutFile with the name chosen by the host and return the
+    /// VFS path the guest will create. A desktop frontend can bind that path to
+    /// the host URL selected by its save panel.
+    pub fn complete_standard_file_save(
+        &mut self,
+        name: &str,
+    ) -> std::result::Result<String, String> {
+        let tracking = self
+            .dispatcher
+            .standard_file_put_tracking
+            .as_ref()
+            .filter(|tracking| tracking.native)
+            .ok_or_else(|| "no native Standard File save dialog is pending".to_string())?;
+        let name = Self::standard_file_guest_name(name);
+        if name.is_empty() {
+            return Err("save destination has no Classic Macintosh filename".to_string());
+        }
+        let target_path = self.standard_file_target_path(tracking.dir_id, &name)?;
+        self.dispatcher.standard_file_dialog_response =
+            Some(StandardFileDialogResponse::Save { name });
+        Ok(target_path)
+    }
+
+    fn standard_file_target_path(
+        &self,
+        dir_id: u32,
+        name: &str,
+    ) -> std::result::Result<String, String> {
+        let parent = self
+            .dispatcher
+            .directory_path_for_id(dir_id)
+            .ok_or_else(|| format!("guest directory ID {dir_id} is not mounted"))?;
+        Ok(if parent.is_empty() {
+            name.to_string()
+        } else {
+            format!("{parent}/{name}")
+        })
+    }
+
+    fn standard_file_guest_name(name: &str) -> String {
+        let safe = name.replace(['/', ':'], "-");
+        let mut bytes = crate::trap::encode_mac_roman_lossy(&safe);
+        bytes.truncate(63);
+        crate::trap::decode_mac_roman(&bytes)
     }
 
     pub fn import_vfs_file_relative_to_launched_app(
