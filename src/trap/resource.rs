@@ -829,6 +829,8 @@ impl super::TrapDispatcher {
 
             // Re-execute the calling JT entry at the JMP instruction. MPW
             // entries dispatch at entry+2; Think C entries dispatch at entry+0.
+            #[cfg(feature = "instruction-generation")]
+            bus.publish_instruction_memory();
             let jmp_addr = Self::loadseg_entry_dispatch_pc(bus, entry_addr);
             if trace_loadseg {
                 eprintln!("[TRAP] LoadSeg: re-executing JT entry at ${:08X}", jmp_addr);
@@ -1020,6 +1022,12 @@ impl super::TrapDispatcher {
         }
         bus.write_bytes(ptr, &data);
         Self::zero_loaded_resource_padding(bus, ptr, data.len() as u32);
+        // The classic Resource Manager reads resource data from disk through
+        // `_Read`, a documented instruction-cache flush. Code resources (CDEF,
+        // WDEF, MDEF, LDEF, DRVR, INIT, or a hand-loaded CODE) arrive here, so
+        // publish the freshly loaded bytes to instruction fetch.
+        #[cfg(feature = "instruction-generation")]
+        bus.publish_instruction_memory();
 
         if let Some(file) = self
             .resources
@@ -4169,6 +4177,12 @@ impl super::TrapDispatcher {
                     // The File Manager clears ioCompletion for synchronous calls.
                     bus.write_long(pb + 12, 0);
                 }
+                // Classic system software flushes the instruction cache at
+                // _Read because the destination may contain newly loaded code.
+                // This is a publication boundary even on an error: callers may
+                // have performed preceding code writes before invoking the trap.
+                #[cfg(feature = "instruction-generation")]
+                bus.publish_instruction_memory();
                 Ok(())
             }
 
@@ -7871,6 +7885,9 @@ impl super::TrapDispatcher {
         }
         let bytes = bus.read_bytes(ptr + offset as u32, count as usize);
         bus.write_bytes(buffer, &bytes);
+        // On real hardware a partial read streams from disk through `_Read`.
+        #[cfg(feature = "instruction-generation")]
+        bus.publish_instruction_memory();
         // The classic Resource Manager reports `resourceInMemory`
         // after a partial read from a resource that is already loaded.
         if already_in_memory {
@@ -7937,6 +7954,10 @@ impl super::TrapDispatcher {
         if count > 0 {
             let bytes = bus.read_bytes(buffer, count as usize);
             bus.write_bytes(live_ptr + offset as u32, &bytes);
+            // The system copied the caller's bytes into the resource's live
+            // block (and may have relocated it): a system block move.
+            #[cfg(feature = "instruction-generation")]
+            bus.publish_instruction_memory();
         }
         if handle_was_empty {
             bus.write_long(handle, 0);
@@ -10897,6 +10918,53 @@ mod tests {
         assert_eq!(cpu.read_reg(Register::A7), TEST_SP + 16);
         assert_eq!(bus.read_bytes(buffer, 3), vec![0x20, 0x30, 0x40]);
         assert_eq!(bus.read_word(0x0A60) as i16, -188);
+    }
+
+    #[test]
+    #[cfg(feature = "instruction-generation")]
+    fn reloading_resource_bytes_publishes_instruction_memory() {
+        // A resource the Resource Manager brings into memory reaches it
+        // through `_Read` on real hardware, which flushes the instruction
+        // cache. Code resources (CDEF, WDEF, MDEF, DRVR, hand-loaded CODE)
+        // arrive this way, so the HLE load must publish the same boundary.
+        let (mut disp, _cpu, mut bus) = setup();
+        let code = [0x4E, 0x75, 0x4E, 0x71]; // RTS ; NOP
+        setup_resources(&mut disp, &mut bus, b"CDEF", 7, &code);
+
+        let before = bus.instruction_memory_generation();
+        let ptr = disp
+            .reload_resource_data_from_file(&mut bus, 0, *b"CDEF", 7)
+            .expect("backing data reloads");
+        assert_eq!(bus.read_bytes(ptr, 4), code.to_vec());
+        assert_ne!(
+            bus.instruction_memory_generation(),
+            before,
+            "loading resource bytes publishes them to instruction fetch"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "instruction-generation")]
+    fn readpartialresource_publishes_instruction_memory() {
+        let (mut disp, mut cpu, mut bus) = setup();
+        let data_ptr =
+            setup_resources(&mut disp, &mut bus, b"PART", 95, &[0x10, 0x20, 0x30, 0x40, 0x50]);
+        let handle = disp.get_or_create_resource_handle(&mut bus, *b"PART", 95, data_ptr);
+        let buffer = bus.alloc(4);
+        bus.write_long(TEST_SP, 4); // count
+        bus.write_long(TEST_SP + 4, buffer);
+        bus.write_long(TEST_SP + 8, 1); // offset
+        bus.write_long(TEST_SP + 12, handle);
+        cpu.write_reg(Register::D0, 0x0001);
+
+        let before = bus.instruction_memory_generation();
+        call(&mut disp, true, 0x022, &mut cpu, &mut bus).unwrap();
+        assert_eq!(bus.read_bytes(buffer, 4), vec![0x20, 0x30, 0x40, 0x50]);
+        assert_ne!(
+            bus.instruction_memory_generation(),
+            before,
+            "a partial read streams through _Read on real hardware"
+        );
     }
 
     #[test]
@@ -15128,6 +15196,8 @@ mod tests {
         bus.write_word(pb + 44, 0); // ioPosMode = fsAtMark
         bus.write_long(pb + 46, 0); // ioPosOffset
 
+        #[cfg(feature = "instruction-generation")]
+        let generation_before = bus.instruction_memory_generation();
         call(&mut disp, false, 0x02, &mut cpu, &mut bus).unwrap();
 
         assert_eq!(cpu.read_reg(Register::D0), 0);
@@ -15135,6 +15205,12 @@ mod tests {
         assert_eq!(bus.read_byte(read_buf), 10);
         assert_eq!(bus.read_byte(read_buf + 1), 20);
         assert_eq!(bus.read_byte(read_buf + 2), 30);
+        #[cfg(feature = "instruction-generation")]
+        assert_ne!(
+            bus.instruction_memory_generation(),
+            generation_before,
+            "_Read publishes bytes that may contain executable code"
+        );
     }
 
     #[test]
@@ -15188,12 +15264,20 @@ mod tests {
         bus.write_word(pb + 44, 0);
         bus.write_long(pb + 46, 0);
 
+        #[cfg(feature = "instruction-generation")]
+        let generation_before = bus.instruction_memory_generation();
         call_trap_word(&mut disp, 0xA002, &mut cpu, &mut bus).unwrap();
 
         assert_eq!(cpu.read_reg(Register::D0) as i32, -39);
         assert_eq!(bus.read_word(pb + 16) as i16, -39);
         assert_eq!(bus.read_long(pb + 12), 0);
         assert!(disp.pending_file_completions.is_empty());
+        #[cfg(feature = "instruction-generation")]
+        assert_ne!(
+            bus.instruction_memory_generation(),
+            generation_before,
+            "_Read remains a publication boundary when it returns eofErr"
+        );
     }
 
     #[test]

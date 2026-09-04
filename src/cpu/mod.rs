@@ -164,7 +164,20 @@ impl M68kCpu {
         max_instructions: u32,
         watch_pcs: &[u32],
     ) -> m68k::BatchResult {
-        self.core.run_batch(bus, max_instructions, watch_pcs)
+        #[cfg(feature = "instruction-generation")]
+        {
+            let generation = bus.instruction_memory_generation();
+            return self.core.run_batch_with_instruction_memory_generation(
+                bus,
+                max_instructions,
+                watch_pcs,
+                generation,
+            );
+        }
+        #[cfg(not(feature = "instruction-generation"))]
+        {
+            self.core.run_batch(bus, max_instructions, watch_pcs)
+        }
     }
 
     /// Execute one instruction through m68k's precise stepping path.

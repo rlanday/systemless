@@ -2646,6 +2646,11 @@ fn run_headless(
     }
 
     eprintln!("[HEADLESS] Completed {} instructions", total);
+    #[cfg(feature = "instruction-generation")]
+    eprintln!(
+        "[HEADLESS] Instruction-memory publications: {}",
+        runner.instruction_memory_publication_count()
+    );
     save_store.sync_save_files_now(&mut runner);
     save_screenshot(&runner, 9999);
     // Measurement-only: prints nothing unless SYSTEMLESS_WAIT_STATS is set.

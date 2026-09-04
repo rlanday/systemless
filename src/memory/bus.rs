@@ -289,6 +289,32 @@ fn maybe_log_mem_write(address: u32, width: u8, value: u32) {
 
 /// Global step counter for debugging (incremented by runner)
 pub static STEP_COUNTER: AtomicU32 = AtomicU32::new(0);
+
+/// Process-wide proof-token allocator. A token is never reused across bus
+/// instances or publication events. On exhaustion the counter sticks at
+/// `u32::MAX` and callers receive zero, which disables proof reuse safely.
+#[cfg(feature = "instruction-generation")]
+static NEXT_INSTRUCTION_MEMORY_GENERATION: AtomicU32 = AtomicU32::new(1);
+
+#[cfg(feature = "instruction-generation")]
+thread_local! {
+    /// Publications made on this thread; diagnostic only, reported at
+    /// headless completion so a workload's publication rate can be cited.
+    /// Thread-local rather than a bus field so the bus keeps its exact size
+    /// and field offsets (the write-probe tests on every access are
+    /// offset-sensitive) and so tests on parallel threads see only their own
+    /// publications.
+    static INSTRUCTION_MEMORY_PUBLICATIONS: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+}
+
+#[cfg(feature = "instruction-generation")]
+fn allocate_instruction_memory_generation() -> u32 {
+    NEXT_INSTRUCTION_MEMORY_GENERATION
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
+            next.checked_add(1)
+        })
+        .unwrap_or(0)
+}
 pub static WATCHPOINT_ARMED: AtomicBool = AtomicBool::new(false);
 
 thread_local! {
@@ -488,6 +514,18 @@ pub struct MacMemoryBus {
     /// the overwhelmingly common case reject in two comparisons instead of
     /// scanning the list.
     readonly_code_span: Option<(u32, u32)>,
+    /// Explicit instruction-publication generation offered to the m68k
+    /// trace executor by the experimental cache-coherency path. Ordinary
+    /// guest data stores deliberately do not touch this value; loaders and
+    /// emulated instruction-cache flush operations publish code changes.
+    #[cfg(feature = "instruction-generation")]
+    instruction_memory_generation: u32,
+    /// Whether instruction fetch currently has the cache-style publication
+    /// boundary required by `instruction_memory_generation`. Disabling the
+    /// emulated instruction cache makes ordinary writes immediately visible,
+    /// so traces must return to byte validation until it is enabled again.
+    #[cfg(feature = "instruction-generation")]
+    instruction_publication_authoritative: bool,
     /// Original byte values for a short, explicitly requested execution
     /// probe. While present, fast-memory and bulk-write paths are disabled so
     /// every guest and HLE write passes through `write_byte`. Comparing the
@@ -1198,6 +1236,10 @@ impl MacMemoryBus {
             synthetic_floor,
             readonly_code_ranges: Vec::new(),
             readonly_code_span: None,
+            #[cfg(feature = "instruction-generation")]
+            instruction_memory_generation: allocate_instruction_memory_generation(),
+            #[cfg(feature = "instruction-generation")]
+            instruction_publication_authoritative: true,
             write_probe_original: None,
             write_probe_spare: WriteProbeJournal::default(),
             write_probe_invalid: false,
@@ -1291,6 +1333,10 @@ impl MacMemoryBus {
             synthetic_floor,
             readonly_code_ranges: Vec::new(),
             readonly_code_span: None,
+            #[cfg(feature = "instruction-generation")]
+            instruction_memory_generation: allocate_instruction_memory_generation(),
+            #[cfg(feature = "instruction-generation")]
+            instruction_publication_authoritative: true,
             write_probe_original: None,
             write_probe_spare: WriteProbeJournal::default(),
             write_probe_invalid: false,
@@ -1720,9 +1766,81 @@ impl MacMemoryBus {
         }
     }
 
+    /// Generation promised to the m68k batch executor, or zero while the
+    /// emulated instruction cache makes publication non-authoritative.
+    #[cfg(feature = "instruction-generation")]
+    #[inline]
+    pub(crate) fn instruction_memory_generation(&self) -> u32 {
+        if self.instruction_publication_authoritative {
+            self.instruction_memory_generation
+        } else {
+            0
+        }
+    }
+
+    /// Publish changes that can become visible to 68k instruction fetch.
+    /// Zero is reserved to disable generation-based validation. The
+    /// process-wide allocator never reuses a token across buses or events;
+    /// exhausting it therefore disables reuse instead of wrapping.
+    #[cfg(feature = "instruction-generation")]
+    pub(crate) fn publish_instruction_memory(&mut self) {
+        self.instruction_memory_generation = allocate_instruction_memory_generation();
+        INSTRUCTION_MEMORY_PUBLICATIONS.with(|count| count.set(count.get() + 1));
+    }
+
+    /// Publications made so far on this thread (diagnostic).
+    #[cfg(feature = "instruction-generation")]
+    pub(crate) fn instruction_memory_publication_count(&self) -> u64 {
+        INSTRUCTION_MEMORY_PUBLICATIONS.with(|count| count.get())
+    }
+
+    /// Write an instruction word that the host itself owns (a callback
+    /// trampoline's opcode or operand). Ordinary guest data stores never
+    /// publish, but the host rewriting instruction bytes is exactly the case
+    /// the publication contract exists for: a retained native trace over the
+    /// trampoline would otherwise keep the previous operand. Unchanged bytes
+    /// are skipped so a repeated callback publishes nothing.
+    pub(crate) fn write_host_code_word(&mut self, address: u32, value: u16) {
+        if self.read_word(address) == value {
+            return;
+        }
+        self.write_word(address, value);
+        #[cfg(feature = "instruction-generation")]
+        self.publish_instruction_memory();
+    }
+
+    /// Long form of [`write_host_code_word`](Self::write_host_code_word).
+    pub(crate) fn write_host_code_long(&mut self, address: u32, value: u32) {
+        if self.read_long(address) == value {
+            return;
+        }
+        self.write_long(address, value);
+        #[cfg(feature = "instruction-generation")]
+        self.publish_instruction_memory();
+    }
+
+    /// Keep the generation contract synchronized with the emulated
+    /// instruction-cache state. A transition itself is a publication boundary:
+    /// after enabling, traces validate once in the new generation; while
+    /// disabled, callers observe generation zero and validate on every entry.
+    #[cfg(feature = "instruction-generation")]
+    pub(crate) fn set_instruction_cache_enabled(&mut self, enabled: bool) {
+        if self.instruction_publication_authoritative == enabled {
+            return;
+        }
+        self.publish_instruction_memory();
+        self.instruction_publication_authoritative = enabled;
+    }
+
     pub(crate) fn write_readonly_code_word(&mut self, address: u32, value: u16) {
         if (address as u64) + 2 <= self.ram_size as u64 {
+            #[cfg(feature = "instruction-generation")]
+            if self.ram.read_word_in_bounds(address as usize) == value {
+                return;
+            }
             self.ram.write_word_in_bounds(address as usize, value);
+            #[cfg(feature = "instruction-generation")]
+            self.publish_instruction_memory();
         }
     }
 
@@ -3825,5 +3943,89 @@ mod tests {
         assert_eq!(donor.read_bytes(ALIAS, 4), [0xaa; 4]);
         receiver.detach_guest_address_space();
         assert_eq!(receiver.read_bytes(ALIAS, 4), [9, 9, 9, 9]);
+    }
+
+    #[test]
+    #[cfg(feature = "instruction-generation")]
+    fn host_code_writes_publish_only_when_the_bytes_change() {
+        let mut bus = MacMemoryBus::new(64 * 1024);
+        let before = bus.instruction_memory_publication_count();
+        let generation = bus.instruction_memory_generation();
+
+        bus.write_host_code_word(0x1000, 0x4EB9); // JSR abs.L
+        bus.write_host_code_long(0x1002, 0x0002_0000);
+        assert_eq!(bus.read_word(0x1000), 0x4EB9);
+        assert_eq!(bus.read_long(0x1002), 0x0002_0000);
+        assert_eq!(bus.instruction_memory_publication_count(), before + 2);
+        assert_ne!(bus.instruction_memory_generation(), generation);
+
+        // Rewriting the same operand (a repeated callback) publishes nothing.
+        let generation = bus.instruction_memory_generation();
+        bus.write_host_code_word(0x1000, 0x4EB9);
+        bus.write_host_code_long(0x1002, 0x0002_0000);
+        assert_eq!(bus.instruction_memory_publication_count(), before + 2);
+        assert_eq!(bus.instruction_memory_generation(), generation);
+
+        // A different callback target is a new instruction operand.
+        bus.write_host_code_long(0x1002, 0x0003_0000);
+        assert_eq!(bus.read_long(0x1002), 0x0003_0000);
+        assert_eq!(bus.instruction_memory_publication_count(), before + 3);
+        assert_ne!(bus.instruction_memory_generation(), generation);
+    }
+
+    #[test]
+    #[cfg(feature = "instruction-generation")]
+    fn instruction_generation_falls_back_while_instruction_cache_is_disabled() {
+        let mut bus = MacMemoryBus::new(64 * 1024);
+
+        let initial = bus.instruction_memory_generation();
+        assert_ne!(initial, 0);
+        let other_bus = MacMemoryBus::new(64 * 1024);
+        assert_ne!(
+            other_bus.instruction_memory_generation(),
+            initial,
+            "proof tokens must not collide across bus identities"
+        );
+        bus.publish_instruction_memory();
+        let published = bus.instruction_memory_generation();
+        assert_ne!(published, initial);
+
+        bus.set_instruction_cache_enabled(false);
+        assert_eq!(
+            bus.instruction_memory_generation(),
+            0,
+            "coherent writable code requires ordinary byte validation"
+        );
+        bus.publish_instruction_memory();
+        assert_eq!(
+            bus.instruction_memory_generation(),
+            0,
+            "flushes cannot restore the promise while the cache is disabled"
+        );
+
+        bus.set_instruction_cache_enabled(true);
+        assert_ne!(
+            bus.instruction_memory_generation(),
+            0,
+            "re-enabling starts a fresh reusable validation generation"
+        );
+        assert_ne!(bus.instruction_memory_generation(), published);
+    }
+
+    #[test]
+    #[cfg(feature = "instruction-generation")]
+    fn readonly_code_publication_ignores_idempotent_reseeding() {
+        let mut bus = MacMemoryBus::new(64 * 1024);
+        let initial = bus.instruction_memory_generation();
+
+        bus.write_readonly_code_word(0x1000, 0x4E75);
+        let changed = bus.instruction_memory_generation();
+        assert_ne!(changed, initial);
+        bus.write_readonly_code_word(0x1000, 0x4E75);
+        assert_eq!(
+            bus.instruction_memory_generation(),
+            changed,
+            "writing identical synthetic code does not invalidate proofs"
+        );
     }
 }

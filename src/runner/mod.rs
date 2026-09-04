@@ -3701,6 +3701,12 @@ impl FixtureRunner {
     /// Without `init_app`, A5-relative startup code (CodeWarrior /
     /// Think C runtimes, e.g. Koji / Munchies) sees `CurStackBase` =
     /// 0 and spins forever in the globals-decompression loop.
+    /// Instruction-memory publications made by the bus so far (diagnostic).
+    #[cfg(feature = "instruction-generation")]
+    pub fn instruction_memory_publication_count(&self) -> u64 {
+        self.bus.instruction_memory_publication_count()
+    }
+
     pub fn init_app(&mut self, app: &LoadedApp) {
         self.parked_m68k_cpus.clear();
         self.ppc_companion = None;
@@ -4055,9 +4061,9 @@ impl FixtureRunner {
         // the trap, then jump back after the trap consumes that payload.
         // Inside Macintosh Volume I, I-474; MPW Quickdraw.h.
         let shield_cursor_trampoline = self.bus.alloc(6);
-        self.bus.write_word(shield_cursor_trampoline, 0x205F); // MOVEA.L (SP)+,A0
-        self.bus.write_word(shield_cursor_trampoline + 2, 0xA855); // ShieldCursor
-        self.bus.write_word(shield_cursor_trampoline + 4, 0x4ED0); // JMP (A0)
+        self.bus.write_host_code_word(shield_cursor_trampoline, 0x205F); // MOVEA.L (SP)+,A0
+        self.bus.write_host_code_word(shield_cursor_trampoline + 2, 0xA855); // ShieldCursor
+        self.bus.write_host_code_word(shield_cursor_trampoline + 4, 0x4ED0); // JMP (A0)
         self.bus
             .write_long(addr::J_SHIELD_CURSOR, shield_cursor_trampoline);
 
@@ -4082,9 +4088,9 @@ impl FixtureRunner {
         // leaves A7 on the four-byte FMOutPtr result slot. Allocate this only
         // after reserving the application zone header so it remains live.
         let swap_font_trampoline = self.bus.alloc(6);
-        self.bus.write_word(swap_font_trampoline, 0x205F); // MOVEA.L (SP)+,A0
-        self.bus.write_word(swap_font_trampoline + 2, 0xA901); // FMSwapFont
-        self.bus.write_word(swap_font_trampoline + 4, 0x4ED0); // JMP (A0)
+        self.bus.write_host_code_word(swap_font_trampoline, 0x205F); // MOVEA.L (SP)+,A0
+        self.bus.write_host_code_word(swap_font_trampoline + 2, 0xA901); // FMSwapFont
+        self.bus.write_host_code_word(swap_font_trampoline + 4, 0x4ED0); // JMP (A0)
         self.bus.write_long(addr::J_SWAP_FONT, swap_font_trampoline);
 
         // Set CPU state
@@ -9307,18 +9313,18 @@ impl FixtureRunner {
             // Time Manager callbacks. MPW Interfaces/AIncludes/LowMemEqu.a:
             // `JCrsrTask EQU $8EE`.
             let tramp = self.bus.alloc(16);
-            self.bus.write_word(tramp, 0x48E7); // MOVEM.L D0-D3/A0-A3,-(SP)
-            self.bus.write_word(tramp + 2, 0xF0F0);
-            self.bus.write_word(tramp + 4, 0x4EB9); // JSR abs.L
+            self.bus.write_host_code_word(tramp, 0x48E7); // MOVEM.L D0-D3/A0-A3,-(SP)
+            self.bus.write_host_code_word(tramp + 2, 0xF0F0);
+            self.bus.write_host_code_word(tramp + 4, 0x4EB9); // JSR abs.L
                                                     // +6..+9: callback_addr (patched per-fire)
-            self.bus.write_word(tramp + 10, 0x4CDF); // MOVEM.L (SP)+,D0-D3/A0-A3
-            self.bus.write_word(tramp + 12, 0x0F0F);
-            self.bus.write_word(tramp + 14, 0x4E75); // RTS
+            self.bus.write_host_code_word(tramp + 10, 0x4CDF); // MOVEM.L (SP)+,D0-D3/A0-A3
+            self.bus.write_host_code_word(tramp + 12, 0x0F0F);
+            self.bus.write_host_code_word(tramp + 14, 0x4E75); // RTS
             self.cursor_task_trampoline = tramp;
         }
 
         let tramp = self.cursor_task_trampoline;
-        self.bus.write_long(tramp + 6, callback_addr);
+        self.bus.write_host_code_long(tramp + 6, callback_addr);
         if trace_vbl_enabled() {
             eprintln!(
                 "[VBL] fire JCrsrTask addr=${:08X} interrupted_pc=${:08X} interrupted_sp=${:08X}",
@@ -9410,19 +9416,19 @@ impl FixtureRunner {
 
         if self.vbl_trampoline == 0 {
             let tramp = self.bus.alloc_synthetic(22);
-            self.bus.write_word(tramp, 0x48E7); // MOVEM.L D0-D3/A0-A3,-(SP)
-            self.bus.write_word(tramp + 2, 0xF0F0);
-            self.bus.write_word(tramp + 4, 0x207C); // MOVEA.L #imm,A0
-            self.bus.write_word(tramp + 10, 0x4EB9); // JSR abs.L
-            self.bus.write_word(tramp + 16, 0x4CDF); // MOVEM.L (SP)+,D0-D3/A0-A3
-            self.bus.write_word(tramp + 18, 0x0F0F);
-            self.bus.write_word(tramp + 20, 0x4E75); // RTS
+            self.bus.write_host_code_word(tramp, 0x48E7); // MOVEM.L D0-D3/A0-A3,-(SP)
+            self.bus.write_host_code_word(tramp + 2, 0xF0F0);
+            self.bus.write_host_code_word(tramp + 4, 0x207C); // MOVEA.L #imm,A0
+            self.bus.write_host_code_word(tramp + 10, 0x4EB9); // JSR abs.L
+            self.bus.write_host_code_word(tramp + 16, 0x4CDF); // MOVEM.L (SP)+,D0-D3/A0-A3
+            self.bus.write_host_code_word(tramp + 18, 0x0F0F);
+            self.bus.write_host_code_word(tramp + 20, 0x4E75); // RTS
             self.vbl_trampoline = tramp;
         }
 
         let tramp = self.vbl_trampoline;
-        self.bus.write_long(tramp + 6, task_ptr);
-        self.bus.write_long(tramp + 12, callback_addr);
+        self.bus.write_host_code_long(tramp + 6, task_ptr);
+        self.bus.write_host_code_long(tramp + 12, callback_addr);
 
         let current_pc = self.cpu.read_reg(Register::PC);
         let sp = self.cpu.read_reg(Register::A7);
@@ -9555,22 +9561,22 @@ impl FixtureRunner {
             //   +20: RTS                          ; 4E75
             if self.timer_trampoline == 0 {
                 let tramp = self.bus.alloc(24); // 22 bytes + 2 padding
-                self.bus.write_word(tramp, 0x48E7); // MOVEM.L regs,-(SP)
-                self.bus.write_word(tramp + 2, 0xF0F0); // D0-D3/A0-A3
-                self.bus.write_word(tramp + 4, 0x227C); // MOVEA.L #imm32,A1
+                self.bus.write_host_code_word(tramp, 0x48E7); // MOVEM.L regs,-(SP)
+                self.bus.write_host_code_word(tramp + 2, 0xF0F0); // D0-D3/A0-A3
+                self.bus.write_host_code_word(tramp + 4, 0x227C); // MOVEA.L #imm32,A1
                                                         // +6..+9: task_ptr (patched per-fire)
-                self.bus.write_word(tramp + 10, 0x4EB9); // JSR abs.L
+                self.bus.write_host_code_word(tramp + 10, 0x4EB9); // JSR abs.L
                                                          // +12..+15: tm_addr (patched per-fire)
-                self.bus.write_word(tramp + 16, 0x4CDF); // MOVEM.L (SP)+,regs
-                self.bus.write_word(tramp + 18, 0x0F0F); // D0-D3/A0-A3
-                self.bus.write_word(tramp + 20, 0x4E75); // RTS
+                self.bus.write_host_code_word(tramp + 16, 0x4CDF); // MOVEM.L (SP)+,regs
+                self.bus.write_host_code_word(tramp + 18, 0x0F0F); // D0-D3/A0-A3
+                self.bus.write_host_code_word(tramp + 20, 0x4E75); // RTS
                 self.timer_trampoline = tramp;
             }
 
             // Patch the inline data for this specific fire
             let tramp = self.timer_trampoline;
-            self.bus.write_long(tramp + 6, task_ptr);
-            self.bus.write_long(tramp + 12, tm_addr);
+            self.bus.write_host_code_long(tramp + 6, task_ptr);
+            self.bus.write_host_code_long(tramp + 12, tm_addr);
 
             // Snapshot the interrupted CPU state before mutating A7 for the
             // synthetic return address. The Time Manager callback should resume
@@ -9845,13 +9851,13 @@ impl FixtureRunner {
 
         if self.file_completion_trampoline == 0 {
             let tramp = self.bus.alloc_synthetic(8);
-            self.bus.write_word(tramp, 0x4EB9); // JSR abs.L
-            self.bus.write_word(tramp + 6, 0x4E75); // RTS
+            self.bus.write_host_code_word(tramp, 0x4EB9); // JSR abs.L
+            self.bus.write_host_code_word(tramp + 6, 0x4E75); // RTS
             self.file_completion_trampoline = tramp;
         }
 
         let tramp = self.file_completion_trampoline;
-        self.bus.write_long(tramp + 2, completion.completion_addr);
+        self.bus.write_host_code_long(tramp + 2, completion.completion_addr);
         self.inject_interrupt_callback(ActiveInterruptCallbackSource::FileCompletion, tramp);
         self.cpu.write_reg(Register::A0, completion.parameter_block);
         self.cpu
@@ -9878,8 +9884,8 @@ impl FixtureRunner {
 
         if self.adb_callback_trampoline == 0 {
             let tramp = self.bus.alloc_synthetic(8);
-            self.bus.write_word(tramp, 0x4EB9); // JSR abs.L
-            self.bus.write_word(tramp + 6, 0x4E75); // RTS
+            self.bus.write_host_code_word(tramp, 0x4EB9); // JSR abs.L
+            self.bus.write_host_code_word(tramp + 6, 0x4E75); // RTS
             self.adb_callback_trampoline = tramp;
         }
         if self.adb_packet_buffer == 0 {
@@ -9887,7 +9893,7 @@ impl FixtureRunner {
         }
 
         let tramp = self.adb_callback_trampoline;
-        self.bus.write_long(tramp + 2, packet.service_routine);
+        self.bus.write_host_code_long(tramp + 2, packet.service_routine);
         for (offset, byte) in packet.packet.into_iter().enumerate() {
             self.bus
                 .write_byte(self.adb_packet_buffer + offset as u32, byte);
@@ -9955,15 +9961,15 @@ impl FixtureRunner {
                     // then reset SP to the saved-register frame after JSR so
                     // one-arg, two-arg, and C-style cleanup all resume safely.
                     let tramp = self.bus.alloc_synthetic(42);
-                    self.bus.write_word(tramp, 0x48E7); // MOVEM.L regs,-(SP)
-                    self.bus.write_word(tramp + 2, 0xF0F0); // D0-D3/A0-A3
-                    self.bus.write_word(tramp + 4, 0x2F3C); // MOVE.L #chan,-(SP)
-                    self.bus.write_word(tramp + 10, 0x2F3C); // MOVE.L #cmdPtr,-(SP)
-                    self.bus.write_word(tramp + 16, 0x4EB9); // JSR abs.L
-                    self.bus.write_word(tramp + 22, 0x2E7C); // MOVEA.L #savedSP,A7
-                    self.bus.write_word(tramp + 28, 0x4CDF); // MOVEM.L (SP)+,regs
-                    self.bus.write_word(tramp + 30, 0x0F0F); // D0-D3/A0-A3
-                    self.bus.write_word(tramp + 32, 0x4E75); // RTS
+                    self.bus.write_host_code_word(tramp, 0x48E7); // MOVEM.L regs,-(SP)
+                    self.bus.write_host_code_word(tramp + 2, 0xF0F0); // D0-D3/A0-A3
+                    self.bus.write_host_code_word(tramp + 4, 0x2F3C); // MOVE.L #chan,-(SP)
+                    self.bus.write_host_code_word(tramp + 10, 0x2F3C); // MOVE.L #cmdPtr,-(SP)
+                    self.bus.write_host_code_word(tramp + 16, 0x4EB9); // JSR abs.L
+                    self.bus.write_host_code_word(tramp + 22, 0x2E7C); // MOVEA.L #savedSP,A7
+                    self.bus.write_host_code_word(tramp + 28, 0x4CDF); // MOVEM.L (SP)+,regs
+                    self.bus.write_host_code_word(tramp + 30, 0x0F0F); // D0-D3/A0-A3
+                    self.bus.write_host_code_word(tramp + 32, 0x4E75); // RTS
                     self.sound_callback_trampoline = tramp;
                 }
 
@@ -9971,10 +9977,10 @@ impl FixtureRunner {
                 let cmd_ptr = tramp + 34;
                 let interrupted_sp = self.cpu.read_reg(Register::A7);
                 let saved_regs_sp = interrupted_sp.wrapping_sub(4 + 32);
-                self.bus.write_long(tramp + 6, chan_ptr);
-                self.bus.write_long(tramp + 12, cmd_ptr);
-                self.bus.write_long(tramp + 18, callback_addr);
-                self.bus.write_long(tramp + 24, saved_regs_sp);
+                self.bus.write_host_code_long(tramp + 6, chan_ptr);
+                self.bus.write_host_code_long(tramp + 12, cmd_ptr);
+                self.bus.write_host_code_long(tramp + 18, callback_addr);
+                self.bus.write_host_code_long(tramp + 24, saved_regs_sp);
                 self.bus.write_word(cmd_ptr, cmd.cmd);
                 self.bus.write_word(cmd_ptr + 2, cmd.param1 as u16);
                 self.bus.write_long(cmd_ptr + 4, cmd.param2);
@@ -9993,23 +9999,23 @@ impl FixtureRunner {
                 // Sound 1994, 2-151
                 if self.sound_file_completion_trampoline == 0 {
                     let tramp = self.bus.alloc_synthetic(28);
-                    self.bus.write_word(tramp, 0x48E7); // MOVEM.L regs,-(SP)
-                    self.bus.write_word(tramp + 2, 0xF0F0); // D0-D3/A0-A3
-                    self.bus.write_word(tramp + 4, 0x2F3C); // MOVE.L #chan,-(SP)
-                    self.bus.write_word(tramp + 10, 0x4EB9); // JSR abs.L
-                    self.bus.write_word(tramp + 16, 0x2E7C); // MOVEA.L #savedSP,A7
-                    self.bus.write_word(tramp + 22, 0x4CDF); // MOVEM.L (SP)+,regs
-                    self.bus.write_word(tramp + 24, 0x0F0F); // D0-D3/A0-A3
-                    self.bus.write_word(tramp + 26, 0x4E75); // RTS
+                    self.bus.write_host_code_word(tramp, 0x48E7); // MOVEM.L regs,-(SP)
+                    self.bus.write_host_code_word(tramp + 2, 0xF0F0); // D0-D3/A0-A3
+                    self.bus.write_host_code_word(tramp + 4, 0x2F3C); // MOVE.L #chan,-(SP)
+                    self.bus.write_host_code_word(tramp + 10, 0x4EB9); // JSR abs.L
+                    self.bus.write_host_code_word(tramp + 16, 0x2E7C); // MOVEA.L #savedSP,A7
+                    self.bus.write_host_code_word(tramp + 22, 0x4CDF); // MOVEM.L (SP)+,regs
+                    self.bus.write_host_code_word(tramp + 24, 0x0F0F); // D0-D3/A0-A3
+                    self.bus.write_host_code_word(tramp + 26, 0x4E75); // RTS
                     self.sound_file_completion_trampoline = tramp;
                 }
 
                 let tramp = self.sound_file_completion_trampoline;
                 let interrupted_sp = self.cpu.read_reg(Register::A7);
                 let saved_regs_sp = interrupted_sp.wrapping_sub(4 + 32);
-                self.bus.write_long(tramp + 6, chan_ptr);
-                self.bus.write_long(tramp + 12, callback_addr);
-                self.bus.write_long(tramp + 18, saved_regs_sp);
+                self.bus.write_host_code_long(tramp + 6, chan_ptr);
+                self.bus.write_host_code_long(tramp + 12, callback_addr);
+                self.bus.write_host_code_long(tramp + 18, saved_regs_sp);
                 self.inject_interrupt_callback(
                     ActiveInterruptCallbackSource::SoundFileCompletion,
                     tramp,
@@ -10093,19 +10099,19 @@ impl FixtureRunner {
         //   +32: RTS                          ; 4E75
         if self.sound_doubleback_trampoline == 0 {
             let tramp = self.bus.alloc_synthetic(34);
-            self.bus.write_word(tramp, 0x48E7); // MOVEM.L regs,-(SP)
-            self.bus.write_word(tramp + 2, 0xF0F0); // D0-D3/A0-A3
-            self.bus.write_word(tramp + 4, 0x2F3C); // MOVE.L #imm,-(SP)
+            self.bus.write_host_code_word(tramp, 0x48E7); // MOVEM.L regs,-(SP)
+            self.bus.write_host_code_word(tramp + 2, 0xF0F0); // D0-D3/A0-A3
+            self.bus.write_host_code_word(tramp + 4, 0x2F3C); // MOVE.L #imm,-(SP)
                                                     // +6..+9: chan ptr (patched)
-            self.bus.write_word(tramp + 10, 0x2F3C); // MOVE.L #imm,-(SP)
+            self.bus.write_host_code_word(tramp + 10, 0x2F3C); // MOVE.L #imm,-(SP)
                                                      // +12..+15: exhausted buf ptr (patched)
-            self.bus.write_word(tramp + 16, 0x4EB9); // JSR abs.L
+            self.bus.write_host_code_word(tramp + 16, 0x4EB9); // JSR abs.L
                                                      // +18..+21: callback addr (patched)
-            self.bus.write_word(tramp + 22, 0x2E7C); // MOVEA.L #savedSP,A7
+            self.bus.write_host_code_word(tramp + 22, 0x2E7C); // MOVEA.L #savedSP,A7
                                                      // +24..+27: saved regs SP (patched)
-            self.bus.write_word(tramp + 28, 0x4CDF); // MOVEM.L (SP)+,regs
-            self.bus.write_word(tramp + 30, 0x0F0F); // D0-D3/A0-A3
-            self.bus.write_word(tramp + 32, 0x4E75); // RTS
+            self.bus.write_host_code_word(tramp + 28, 0x4CDF); // MOVEM.L (SP)+,regs
+            self.bus.write_host_code_word(tramp + 30, 0x0F0F); // D0-D3/A0-A3
+            self.bus.write_host_code_word(tramp + 32, 0x4E75); // RTS
             self.sound_doubleback_trampoline = tramp;
         }
 
@@ -10115,10 +10121,10 @@ impl FixtureRunner {
         // Classic Pascal pushes parameters left-to-right. At callback entry,
         // after JSR has stacked the return address, the exhausted buffer is at
         // SP+4 and chan is at SP+8. Sound 1994, 2-153.
-        self.bus.write_long(tramp + 6, cb.chan_ptr);
-        self.bus.write_long(tramp + 12, exhausted_buf_ptr);
-        self.bus.write_long(tramp + 18, cb.callback_addr);
-        self.bus.write_long(tramp + 24, saved_regs_sp);
+        self.bus.write_host_code_long(tramp + 6, cb.chan_ptr);
+        self.bus.write_host_code_long(tramp + 12, exhausted_buf_ptr);
+        self.bus.write_host_code_long(tramp + 18, cb.callback_addr);
+        self.bus.write_host_code_long(tramp + 24, saved_regs_sp);
 
         // Doubleback procedures execute at interrupt time, so the interrupted
         // guest CPU state must be restored after the callback unwinds.
@@ -10194,26 +10200,26 @@ impl FixtureRunner {
         //   +30: RTS                            ; 4E75
         if self.dialog_draw_trampoline == 0 {
             let tramp = self.dialog_callback_scratch_base() + DIALOG_DRAW_TRAMPOLINE_OFFSET;
-            self.bus.write_word(tramp, 0x48E7); // MOVEM.L regs,-(SP)
-            self.bus.write_word(tramp + 2, 0xF0F0); // D0-D3/A0-A3
-            self.bus.write_word(tramp + 4, 0x2F3C); // MOVE.L #imm,-(SP)
+            self.bus.write_host_code_word(tramp, 0x48E7); // MOVEM.L regs,-(SP)
+            self.bus.write_host_code_word(tramp + 2, 0xF0F0); // D0-D3/A0-A3
+            self.bus.write_host_code_word(tramp + 4, 0x2F3C); // MOVE.L #imm,-(SP)
                                                     // +6..+9: dialogPtr (patched per-fire)
-            self.bus.write_word(tramp + 10, 0x3F3C); // MOVE.W #imm,-(SP)
+            self.bus.write_host_code_word(tramp + 10, 0x3F3C); // MOVE.W #imm,-(SP)
                                                      // +12..+13: itemNo (patched per-fire)
-            self.bus.write_word(tramp + 14, 0x4EB9); // JSR abs.L
+            self.bus.write_host_code_word(tramp + 14, 0x4EB9); // JSR abs.L
                                                      // +16..+19: proc_addr (patched per-fire)
-            self.bus.write_word(tramp + 20, 0x4FF9); // MOVEA.L #imm,A7
+            self.bus.write_host_code_word(tramp + 20, 0x4FF9); // MOVEA.L #imm,A7
                                                      // +22..+25: savedRegsSP (patched per-fire)
-            self.bus.write_word(tramp + 26, 0x4CDF); // MOVEM.L (SP)+,regs
-            self.bus.write_word(tramp + 28, 0x0F0F); // D0-D3/A0-A3
-            self.bus.write_word(tramp + 30, 0x4E75); // RTS
+            self.bus.write_host_code_word(tramp + 26, 0x4CDF); // MOVEM.L (SP)+,regs
+            self.bus.write_host_code_word(tramp + 28, 0x0F0F); // D0-D3/A0-A3
+            self.bus.write_host_code_word(tramp + 30, 0x4E75); // RTS
             self.dialog_draw_trampoline = tramp;
         }
 
         let tramp = self.dialog_draw_trampoline;
-        self.bus.write_long(tramp + 6, dialog_ptr);
-        self.bus.write_word(tramp + 12, item_no as u16);
-        self.bus.write_long(tramp + 16, call_addr);
+        self.bus.write_host_code_long(tramp + 6, dialog_ptr);
+        self.bus.write_host_code_word(tramp + 12, item_no as u16);
+        self.bus.write_host_code_long(tramp + 16, call_addr);
 
         // The Dialog Manager sets the current port to the dialog before a
         // userItem draw proc. Preserve the dialog's clean baseline around
@@ -10251,7 +10257,7 @@ impl FixtureRunner {
         let sr = self.cpu.core.get_sr();
         let new_sp = sp.wrapping_sub(4);
         let saved_regs_sp = new_sp.wrapping_sub(32);
-        self.bus.write_long(tramp + 22, saved_regs_sp);
+        self.bus.write_host_code_long(tramp + 22, saved_regs_sp);
         self.bus.write_long(new_sp, current_pc);
         self.cpu.write_reg(Register::A7, new_sp);
         self.active_interrupt_callback = Some(ActiveInterruptCallback {
@@ -10371,20 +10377,20 @@ impl FixtureRunner {
         //   +20: RTS                          ; 4E75
         if self.menu_hook_trampoline == 0 {
             let tramp = self.dialog_callback_scratch_base() + MENU_HOOK_TRAMPOLINE_OFFSET;
-            self.bus.write_word(tramp, 0x48E7); // MOVEM.L regs,-(SP)
-            self.bus.write_word(tramp + 2, 0xF0F0); // D0-D3/A0-A3
-            self.bus.write_word(tramp + 4, 0x4EB9); // JSR abs.L
+            self.bus.write_host_code_word(tramp, 0x48E7); // MOVEM.L regs,-(SP)
+            self.bus.write_host_code_word(tramp + 2, 0xF0F0); // D0-D3/A0-A3
+            self.bus.write_host_code_word(tramp + 4, 0x4EB9); // JSR abs.L
                                                     // +6..+9: hook_addr
-            self.bus.write_word(tramp + 10, 0x4FF9); // MOVEA.L #imm,A7
+            self.bus.write_host_code_word(tramp + 10, 0x4FF9); // MOVEA.L #imm,A7
                                                      // +12..+15: savedRegsSP
-            self.bus.write_word(tramp + 16, 0x4CDF); // MOVEM.L (SP)+,regs
-            self.bus.write_word(tramp + 18, 0x0F0F); // D0-D3/A0-A3
-            self.bus.write_word(tramp + 20, 0x4E75); // RTS
+            self.bus.write_host_code_word(tramp + 16, 0x4CDF); // MOVEM.L (SP)+,regs
+            self.bus.write_host_code_word(tramp + 18, 0x0F0F); // D0-D3/A0-A3
+            self.bus.write_host_code_word(tramp + 20, 0x4E75); // RTS
             self.menu_hook_trampoline = tramp;
         }
 
         let tramp = self.menu_hook_trampoline;
-        self.bus.write_long(tramp + 6, call_addr);
+        self.bus.write_host_code_long(tramp + 6, call_addr);
 
         let current_pc = self.cpu.read_reg(Register::PC);
         let sp = self.cpu.read_reg(Register::A7);
@@ -10412,7 +10418,7 @@ impl FixtureRunner {
         let sr = self.cpu.core.get_sr();
         let new_sp = sp.wrapping_sub(4);
         let saved_regs_sp = new_sp.wrapping_sub(32);
-        self.bus.write_long(tramp + 12, saved_regs_sp);
+        self.bus.write_host_code_long(tramp + 12, saved_regs_sp);
         self.bus.write_long(new_sp, current_pc);
         self.cpu.write_reg(Register::A7, new_sp);
         self.active_interrupt_callback = Some(ActiveInterruptCallback {
@@ -10684,33 +10690,33 @@ impl FixtureRunner {
         //   +46: RTS                              ; 4E75
         if self.dialog_filter_trampoline == 0 {
             let tramp = self.dialog_callback_scratch_base() + DIALOG_FILTER_TRAMPOLINE_OFFSET;
-            self.bus.write_word(tramp, 0x48E7); // MOVEM.L regs,-(SP)
-            self.bus.write_word(tramp + 2, 0xF0F0); // D0-D3/A0-A3
-            self.bus.write_word(tramp + 4, 0x4267); // CLR.W -(SP) — result space
-            self.bus.write_word(tramp + 6, 0x2F3C); // MOVE.L #imm,-(SP)
+            self.bus.write_host_code_word(tramp, 0x48E7); // MOVEM.L regs,-(SP)
+            self.bus.write_host_code_word(tramp + 2, 0xF0F0); // D0-D3/A0-A3
+            self.bus.write_host_code_word(tramp + 4, 0x4267); // CLR.W -(SP) — result space
+            self.bus.write_host_code_word(tramp + 6, 0x2F3C); // MOVE.L #imm,-(SP)
                                                     // +8..+11: dialogPtr
-            self.bus.write_word(tramp + 12, 0x2F3C); // MOVE.L #imm,-(SP)
+            self.bus.write_host_code_word(tramp + 12, 0x2F3C); // MOVE.L #imm,-(SP)
                                                      // +14..+17: eventPtr
-            self.bus.write_word(tramp + 18, 0x2F3C); // MOVE.L #imm,-(SP)
+            self.bus.write_host_code_word(tramp + 18, 0x2F3C); // MOVE.L #imm,-(SP)
                                                      // +20..+23: itemHitPtr
-            self.bus.write_word(tramp + 24, 0x4EB9); // JSR abs.L
+            self.bus.write_host_code_word(tramp + 24, 0x4EB9); // JSR abs.L
                                                      // +26..+29: filter_proc
-            self.bus.write_word(tramp + 30, 0x33D7); // MOVE.W (SP),(abs).L
+            self.bus.write_host_code_word(tramp + 30, 0x33D7); // MOVE.W (SP),(abs).L
                                                      // +32..+35: result_addr
-            self.bus.write_word(tramp + 36, 0x2E7C); // MOVEA.L #imm,A7
+            self.bus.write_host_code_word(tramp + 36, 0x2E7C); // MOVEA.L #imm,A7
                                                      // +38..+41: savedSP
-            self.bus.write_word(tramp + 42, 0x4CDF); // MOVEM.L (SP)+,regs
-            self.bus.write_word(tramp + 44, 0x0F0F); // D0-D3/A0-A3
-            self.bus.write_word(tramp + 46, 0x4E75); // RTS
+            self.bus.write_host_code_word(tramp + 42, 0x4CDF); // MOVEM.L (SP)+,regs
+            self.bus.write_host_code_word(tramp + 44, 0x0F0F); // D0-D3/A0-A3
+            self.bus.write_host_code_word(tramp + 46, 0x4E75); // RTS
             self.dialog_filter_trampoline = tramp;
         }
 
         let tramp = self.dialog_filter_trampoline;
-        self.bus.write_long(tramp + 8, dialog_ptr);
-        self.bus.write_long(tramp + 14, evt);
-        self.bus.write_long(tramp + 20, item_hit_ptr);
-        self.bus.write_long(tramp + 26, filter_proc);
-        self.bus.write_long(tramp + 32, result_addr);
+        self.bus.write_host_code_long(tramp + 8, dialog_ptr);
+        self.bus.write_host_code_long(tramp + 14, evt);
+        self.bus.write_host_code_long(tramp + 20, item_hit_ptr);
+        self.bus.write_host_code_long(tramp + 26, filter_proc);
+        self.bus.write_host_code_long(tramp + 32, result_addr);
 
         // ModalDialog handles events through DialogSelect, which selects the
         // dialog port before event handling. Leave that port current when the
@@ -10765,7 +10771,7 @@ impl FixtureRunner {
         let clear_start = filter_entry_sp.wrapping_sub(clear_size);
         self.bus.fill_zeros(clear_start, clear_size);
 
-        self.bus.write_long(tramp + 38, saved_sp);
+        self.bus.write_host_code_long(tramp + 38, saved_sp);
         self.bus.write_long(new_sp, current_pc);
         self.cpu.write_reg(Register::A7, new_sp);
         self.active_interrupt_callback = Some(ActiveInterruptCallback {
@@ -25750,6 +25756,58 @@ mod tests {
         assert!(runner.active_interrupt_callback.is_none());
         assert_eq!(runner.bus.read_word(seen_item_addr) as i16, item_no);
         assert_eq!(runner.bus.read_long(seen_dialog_addr), dialog_ptr);
+    }
+
+    #[test]
+    #[cfg(feature = "instruction-generation")]
+    fn vbl_trampoline_operands_publish_only_when_the_callback_changes() {
+        let mut runner = FixtureRunner::new(8 * 1024 * 1024, FixtureRunnerConfig::default());
+        let interrupted_pc = 0x0001_0000;
+        let interrupted_sp = 0x007F_FFC0;
+        let task_ptr = 0x0020_2000;
+
+        runner.bus.write_word(interrupted_pc, 0x4E71);
+        runner.cpu.write_reg(Register::PC, interrupted_pc);
+        runner.cpu.write_reg(Register::A7, interrupted_sp);
+        runner.cpu.core.set_sr_noint_nosp(0x2000);
+        runner.bus.write_word(task_ptr + 4, 1);
+        runner.bus.write_long(task_ptr + 6, 0x0004_1234);
+        runner.bus.write_word(task_ptr + 10, 1);
+        runner.bus.write_word(task_ptr + 12, 0);
+        runner.dispatcher.vbl_tasks.push(VblTask {
+            task_ptr,
+            architecture: CallbackTaskArchitecture::M68k,
+            slot: None,
+            pending: true,
+        });
+
+        // First fire: the trampoline is created and its operands written.
+        let before = runner.instruction_memory_publication_count();
+        runner.fire_vbl_tasks();
+        let tramp = runner.vbl_trampoline;
+        assert_ne!(tramp, 0);
+        assert_eq!(runner.bus.read_long(tramp + 6), task_ptr);
+        assert_eq!(runner.bus.read_long(tramp + 12), 0x0004_1234);
+        assert!(runner.instruction_memory_publication_count() > before);
+
+        // Firing the same task again rewrites identical operands: no publication.
+        // (Delivering the first callback raised the interrupt mask; lower it.)
+        runner.active_interrupt_callback = None;
+        runner.cpu.core.set_sr_noint_nosp(0x2000);
+        runner.dispatcher.vbl_tasks[0].pending = true;
+        let before = runner.instruction_memory_publication_count();
+        runner.fire_vbl_tasks();
+        assert_eq!(runner.bus.read_long(tramp + 12), 0x0004_1234);
+        assert_eq!(runner.instruction_memory_publication_count(), before);
+
+        // A different callback address is a changed JSR operand: one publication.
+        runner.bus.write_long(task_ptr + 6, 0x0004_5678);
+        runner.active_interrupt_callback = None;
+        runner.cpu.core.set_sr_noint_nosp(0x2000);
+        runner.dispatcher.vbl_tasks[0].pending = true;
+        runner.fire_vbl_tasks();
+        assert_eq!(runner.bus.read_long(tramp + 12), 0x0004_5678);
+        assert_eq!(runner.instruction_memory_publication_count(), before + 1);
     }
 
     #[test]

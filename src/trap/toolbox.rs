@@ -5940,6 +5940,11 @@ impl super::TrapDispatcher {
             (true, 0x1F1) => {
                 let sp = cpu.read_reg(Register::A7);
                 cpu.write_reg(Register::A7, sp + 4);
+                // Although Systemless retains the segment, classic system
+                // software defines _UnloadSeg as an instruction-cache flush
+                // point. Publish any preceding guest code writes accordingly.
+                #[cfg(feature = "instruction-generation")]
+                bus.publish_instruction_memory();
                 Ok(())
             }
 
@@ -20903,11 +20908,19 @@ mod tests {
         bus.write_long(sp, 0x00AB_CDEF);
         bus.write_word(sp + 4, 0xBEEF); // sentinel after pointer argument
 
+        #[cfg(feature = "instruction-generation")]
+        let generation_before = bus.instruction_memory_generation();
         let result = disp.dispatch_toolbox(true, 0x1F1, &mut cpu, &mut bus);
         assert!(result.is_some());
         assert!(result.unwrap().is_ok());
         assert_eq!(cpu.read_reg(Register::A7), sp + 4);
         assert_eq!(bus.read_word(sp + 4), 0xBEEF);
+        #[cfg(feature = "instruction-generation")]
+        assert_ne!(
+            bus.instruction_memory_generation(),
+            generation_before,
+            "_UnloadSeg publishes preceding code writes despite retaining the segment"
+        );
     }
 
     #[test]

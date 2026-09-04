@@ -806,16 +806,39 @@ impl super::TrapDispatcher {
         memory_manager.process_handle_size(bus, handle)
     }
 
+    /// The system software moved or copied `len` bytes on the application's
+    /// behalf. Classic ROMs implement these Memory Manager copies with
+    /// `_BlockMove`, which flushes the processor caches for copies larger
+    /// than twelve bytes (Inside Macintosh: Memory, "About Memory Management
+    /// Utilities": an application need not worry about stale instructions
+    /// when the system software moves its code). The same rule publishes the
+    /// moved bytes to instruction fetch here.
+    #[cfg(feature = "instruction-generation")]
+    fn publish_system_block_copy(bus: &mut MacMemoryBus, len: usize) {
+        if len > 12 {
+            bus.publish_instruction_memory();
+        }
+    }
+
     fn set_process_handle_size(
         &mut self,
         bus: &mut MacMemoryBus,
         handle: u32,
         new_size: u32,
     ) -> u32 {
+        #[cfg(feature = "instruction-generation")]
+        let old_ptr = bus.read_long(handle);
         let memory_manager = self.process_memory_manager();
         let mut memory_manager = memory_manager.borrow_mut();
         memory_manager.attach_classic_memory_bus(bus);
-        memory_manager.set_process_handle_size(bus, handle, new_size) as i32 as u32
+        let result = memory_manager.set_process_handle_size(bus, handle, new_size) as i32 as u32;
+        // Growth beyond the block's bucket relocates it: the contents were
+        // copied to a new address, which is a system-performed block move.
+        #[cfg(feature = "instruction-generation")]
+        if result == 0 && bus.read_long(handle) != old_ptr {
+            Self::publish_system_block_copy(bus, new_size as usize);
+        }
+        result
     }
 
     fn reallocate_process_handle(
@@ -847,10 +870,15 @@ impl super::TrapDispatcher {
         let memory_manager = self.process_memory_manager();
         let mut memory_manager = memory_manager.borrow_mut();
         memory_manager.attach_classic_memory_bus(bus);
-        memory_manager
+        let result = memory_manager
             .copy_bytes_to_new_classic_handle(bus, bytes)
             .map(|(handle, _)| handle)
-            .map_err(|error| error as i32 as u32)
+            .map_err(|error| error as i32 as u32);
+        #[cfg(feature = "instruction-generation")]
+        if result.is_ok() {
+            Self::publish_system_block_copy(bus, bytes.len());
+        }
+        result
     }
 
     fn copy_process_handle(
@@ -861,10 +889,15 @@ impl super::TrapDispatcher {
         let memory_manager = self.process_memory_manager();
         let mut memory_manager = memory_manager.borrow_mut();
         memory_manager.attach_classic_memory_bus(bus);
-        memory_manager
+        let result = memory_manager
             .copy_process_handle(bus, handle)
-            .map(|(handle, _)| handle)
-            .map_err(|error| error as i32 as u32)
+            .map_err(|error| error as i32 as u32);
+        #[cfg(feature = "instruction-generation")]
+        if let Ok((_, ptr)) = result {
+            let len = bus.get_alloc_size(ptr).unwrap_or(0) as usize;
+            Self::publish_system_block_copy(bus, len);
+        }
+        result.map(|(handle, _)| handle)
     }
 
     fn replace_process_handle_bytes(
@@ -876,7 +909,12 @@ impl super::TrapDispatcher {
         let memory_manager = self.process_memory_manager();
         let mut memory_manager = memory_manager.borrow_mut();
         memory_manager.attach_classic_memory_bus(bus);
-        memory_manager.replace_process_handle_bytes(bus, handle, bytes) as i32 as u32
+        let result = memory_manager.replace_process_handle_bytes(bus, handle, bytes) as i32 as u32;
+        #[cfg(feature = "instruction-generation")]
+        if result == 0 {
+            Self::publish_system_block_copy(bus, bytes.len());
+        }
+        result
     }
 
     fn append_bytes_to_process_handle(
@@ -888,7 +926,21 @@ impl super::TrapDispatcher {
         let memory_manager = self.process_memory_manager();
         let mut memory_manager = memory_manager.borrow_mut();
         memory_manager.attach_classic_memory_bus(bus);
-        memory_manager.append_bytes_to_process_handle(bus, handle, bytes) as i32 as u32
+        #[cfg(feature = "instruction-generation")]
+        let old_ptr = bus.read_long(handle);
+        let result = memory_manager.append_bytes_to_process_handle(bus, handle, bytes) as i32 as u32;
+        // Appending copies the new bytes and may relocate the whole block.
+        #[cfg(feature = "instruction-generation")]
+        if result == 0 {
+            let new_ptr = bus.read_long(handle);
+            let len = if new_ptr != old_ptr {
+                bus.get_alloc_size(new_ptr).unwrap_or(0) as usize
+            } else {
+                bytes.len()
+            };
+            Self::publish_system_block_copy(bus, len);
+        }
+        result
     }
 
     fn append_process_handle(
@@ -900,7 +952,21 @@ impl super::TrapDispatcher {
         let memory_manager = self.process_memory_manager();
         let mut memory_manager = memory_manager.borrow_mut();
         memory_manager.attach_classic_memory_bus(bus);
-        memory_manager.append_process_handle(bus, source, destination) as i32 as u32
+        #[cfg(feature = "instruction-generation")]
+        let old_ptr = bus.read_long(destination);
+        let result = memory_manager.append_process_handle(bus, source, destination) as i32 as u32;
+        #[cfg(feature = "instruction-generation")]
+        if result == 0 {
+            let new_ptr = bus.read_long(destination);
+            let len = if new_ptr != old_ptr {
+                bus.get_alloc_size(new_ptr).unwrap_or(0) as usize
+            } else {
+                let source_ptr = bus.read_long(source);
+                bus.get_alloc_size(source_ptr).unwrap_or(0) as usize
+            };
+            Self::publish_system_block_copy(bus, len);
+        }
+        result
     }
 
     pub(crate) fn dispatch_memory<C: CpuOps>(
@@ -1301,7 +1367,10 @@ impl super::TrapDispatcher {
             // A0 = source, A1 = destination, D0 = byte count.
             // Works correctly even when the ranges overlap.
             // Inside Macintosh Volume II, II-44; Memory 1992, 2-59 to 2-60
-            // BlockMove / BlockMoveData ($A02E): Copies D0 bytes from A0 to A1 and preserves overlap semantics; BlockMoveData ($A22E) handled identically (no caches in emulator)
+            // BlockMove / BlockMoveData ($A02E/$A22E): Copies D0 bytes from
+            // A0 to A1 and preserves overlap semantics. BlockMove flushes the
+            // processor caches for copies larger than 12 bytes; its immediate
+            // form, BlockMoveData, deliberately omits that expensive step.
             (false, 0x2E) => {
                 let src = cpu.read_reg(Register::A0);
                 let dst = cpu.read_reg(Register::A1);
@@ -1323,6 +1392,15 @@ impl super::TrapDispatcher {
                 // handling, falls back to byte-at-a-time for edge
                 // cases (watchpoint armed, crosses RAM boundary).
                 bus.block_move(src, dst, count);
+                // Inside Macintosh: Memory 2-60: BlockMove currently flushes
+                // the processor caches for copies larger than 12 bytes. The
+                // immediate-bit BlockMoveData form ($A22E) exists specifically
+                // to copy non-code without that flush. Preserve the distinction
+                // because a flush publishes preceding code writes to the JIT.
+                #[cfg(feature = "instruction-generation")]
+                if (self.current_trap_word & 0x0200) == 0 && (count as i32) > 12 {
+                    bus.publish_instruction_memory();
+                }
                 cpu.write_reg(Register::D0, 0);
                 Ok(())
             }
@@ -1481,6 +1559,8 @@ impl super::TrapDispatcher {
             // Memory 1992, 4-31
             // FlushCodeCache ($A0BD): Memory 1992, 4-31
             (false, 0xBD) => {
+                #[cfg(feature = "instruction-generation")]
+                bus.publish_instruction_memory();
                 cpu.write_reg(Register::D0, 0); // noErr
                 Ok(())
             }
@@ -1727,6 +1807,11 @@ impl super::TrapDispatcher {
                     if new_ptr == 0 && new_size > 0 {
                         cpu.write_reg(Register::D0, (-108i32) as u32); // memFullErr
                     } else {
+                        // A relocated resource block is a system block move.
+                        #[cfg(feature = "instruction-generation")]
+                        if new_ptr != 0 && new_ptr != old_ptr {
+                            Self::publish_system_block_copy(bus, new_size as usize);
+                        }
                         if master_was_nil && new_ptr != 0 {
                             bus.write_long(handle, new_ptr);
                             self.track_handle_ptr(new_ptr, handle);
@@ -2241,6 +2326,10 @@ impl super::TrapDispatcher {
                         let requested_enabled = cpu.read_reg(Register::A0) != 0;
                         let previous_enabled = self.instruction_cache_enabled;
                         self.instruction_cache_enabled = requested_enabled;
+                        if requested_enabled != previous_enabled {
+                            #[cfg(feature = "instruction-generation")]
+                            bus.set_instruction_cache_enabled(requested_enabled);
+                        }
                         let previous = if previous_enabled { 1 } else { 0 };
                         cpu.write_reg(Register::A0, previous);
                         cpu.write_reg(Register::D0, previous);
@@ -2255,12 +2344,29 @@ impl super::TrapDispatcher {
                         cpu.write_reg(Register::A0, previous);
                         cpu.write_reg(Register::D0, previous);
                     }
-                    1 | 3 | 4 | 5 | 6 => {
-                        // Flush/enable/disable caches — no-op in emulation
+                    1 => {
+                        // FlushInstructionCache publishes every preceding
+                        // guest or host code write to instruction fetch.
+                        #[cfg(feature = "instruction-generation")]
+                        bus.publish_instruction_memory();
+                        cpu.write_reg(Register::D0, 0);
+                    }
+                    3 => {
+                        // FlushDataCache does not publish new instruction
+                        // bytes by itself — no-op in emulation.
+                        cpu.write_reg(Register::D0, 0);
+                    }
+                    4 | 5 | 6 => {
+                        // EnableExtCache, DisableExtCache, and FlushExtCache.
+                        // Apple's external caches are transparent for this
+                        // purpose, so none is an instruction-memory
+                        // publication boundary — no-op in emulation.
                         cpu.write_reg(Register::D0, 0);
                     }
                     9 => {
                         // FlushCodeCacheRange: A0=address, A1=count
+                        #[cfg(feature = "instruction-generation")]
+                        bus.publish_instruction_memory();
                         cpu.write_reg(Register::D0, 0); // noErr
                     }
                     _ => {
@@ -3812,9 +3918,10 @@ impl super::TrapDispatcher {
                 Ok(())
             }
 
-            // BlockMoveData ($A22E) — handled by the existing BlockMove ($A02E) arm
-            // above. Both map to trap_num=0x2E; in emulation there is no cache
-            // flush to skip, so behavior is identical. IM:Memory 2-76.
+            // BlockMoveData ($A22E) — handled by the existing BlockMove
+            // ($A02E) arm above. Both map to trap_num=0x2E, but the arm checks
+            // the immediate bit before publishing instruction-memory changes.
+            // IM:Memory 2-60, 2-76.
 
             // MaxBlock ($A061)
             // Returns the maximum contiguous free space available
@@ -8061,6 +8168,104 @@ mod tests {
         assert!(result.unwrap().is_ok(), "BlockMove should succeed");
         assert_eq!(cpu.read_reg(Register::D0), 0);
         assert_eq!(bus.read_bytes(dst, 4), vec![0x11, 0x22, 0x33, 0x44]);
+    }
+
+    #[test]
+    #[cfg(feature = "instruction-generation")]
+    fn hand_to_hand_publishes_only_copies_over_twelve_bytes() {
+        let (mut dispatcher, mut cpu, mut bus) = setup();
+        for (size, publishes) in [(16u32, true), (8u32, false)] {
+            cpu.write_reg(Register::D0, size);
+            dispatcher
+                .dispatch_memory(false, 0x22, &mut cpu, &mut bus)
+                .unwrap()
+                .unwrap();
+            let src_handle = cpu.read_reg(Register::A0);
+            let before = bus.instruction_memory_generation();
+            cpu.write_reg(Register::A0, src_handle);
+            dispatcher
+                .dispatch_memory(true, 0x1E1, &mut cpu, &mut bus)
+                .unwrap()
+                .unwrap();
+            assert_eq!(cpu.read_reg(Register::D0), 0, "HandToHand noErr");
+            assert_eq!(
+                bus.instruction_memory_generation() != before,
+                publishes,
+                "HandToHand of {size} bytes: the ROM copies with _BlockMove, which flushes only above 12 bytes"
+            );
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "instruction-generation")]
+    fn set_handle_size_publishes_only_when_the_block_moves() {
+        let (mut dispatcher, mut cpu, mut bus) = setup();
+        cpu.write_reg(Register::D0, 1);
+        dispatcher
+            .dispatch_memory(false, 0x22, &mut cpu, &mut bus)
+            .unwrap()
+            .unwrap();
+        let handle = cpu.read_reg(Register::A0);
+        let ptr = bus.read_long(handle);
+
+        // Growth within the bucket keeps the block in place: nothing moved.
+        let before = bus.instruction_memory_generation();
+        cpu.write_reg(Register::A0, handle);
+        cpu.write_reg(Register::D0, 3);
+        dispatcher
+            .dispatch_memory(false, 0x24, &mut cpu, &mut bus)
+            .unwrap()
+            .unwrap();
+        assert_eq!(cpu.read_reg(Register::D0), 0);
+        assert_eq!(bus.read_long(handle), ptr, "in-place growth expected");
+        assert_eq!(bus.instruction_memory_generation(), before);
+
+        // Growth beyond the bucket relocates the contents: a system block move.
+        cpu.write_reg(Register::A0, handle);
+        cpu.write_reg(Register::D0, 64);
+        dispatcher
+            .dispatch_memory(false, 0x24, &mut cpu, &mut bus)
+            .unwrap()
+            .unwrap();
+        assert_eq!(cpu.read_reg(Register::D0), 0);
+        assert_ne!(bus.read_long(handle), ptr, "the block should have moved");
+        assert_ne!(bus.instruction_memory_generation(), before);
+    }
+
+    #[test]
+    #[cfg(feature = "instruction-generation")]
+    fn block_move_publishes_only_for_cache_flushing_form_over_twelve_bytes() {
+        let (mut dispatcher, mut cpu, mut bus) = setup();
+        let src = 0x300000u32;
+        let dst = 0x310000u32;
+        bus.write_bytes(src, &[0x5A; 13]);
+        cpu.write_reg(Register::A0, src);
+        cpu.write_reg(Register::A1, dst);
+
+        cpu.write_reg(Register::D0, 13);
+        let before_block_move = bus.instruction_memory_generation();
+        call_trap_word(&mut dispatcher, 0xA02E, &mut cpu, &mut bus).unwrap();
+        let after_block_move = bus.instruction_memory_generation();
+        assert_ne!(
+            after_block_move, before_block_move,
+            "BlockMove publishes copies larger than 12 bytes"
+        );
+
+        cpu.write_reg(Register::D0, 13);
+        call_trap_word(&mut dispatcher, 0xA22E, &mut cpu, &mut bus).unwrap();
+        assert_eq!(
+            bus.instruction_memory_generation(),
+            after_block_move,
+            "BlockMoveData deliberately avoids the cache flush"
+        );
+
+        cpu.write_reg(Register::D0, 12);
+        call_trap_word(&mut dispatcher, 0xA02E, &mut cpu, &mut bus).unwrap();
+        assert_eq!(
+            bus.instruction_memory_generation(),
+            after_block_move,
+            "BlockMove does not guarantee a cache flush at 12 bytes or fewer"
+        );
     }
 
     #[test]

@@ -54,6 +54,11 @@ gui = [
 # Compile hot 68K traces to native code. Embeddings constrained by executable-
 # memory policy can omit this feature and use m68k's portable trace executor.
 jit = ["m68k/jit"]
+# Opt in to the m68k embedder contract that reuses a successful trace-code
+# validation until Systemless publishes a new instruction-memory generation.
+# This stays non-default until the publication source is authoritative for
+# every path that can make guest code visible to instruction fetch.
+instruction-generation = ["m68k/instruction-generation"]
 # Exposes `scripted_traces`, deterministic trap-replay test scaffolding.
 # Off by default so it stays out of the published public API and docs.
 test-support = []
