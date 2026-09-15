@@ -95,16 +95,23 @@ use winit::window::WindowId;
 struct FramePhaseTimer {
     phase: &'static str,
     start: Option<std::time::Instant>,
+    all_phases: bool,
 }
 
 impl FramePhaseTimer {
     fn new(phase: &'static str) -> Self {
-        static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-        let enabled =
-            *ENABLED.get_or_init(|| std::env::var_os("SYSTEMLESS_PROFILE_FRAMES").is_some());
+        static MODE: std::sync::OnceLock<(bool, bool)> = std::sync::OnceLock::new();
+        let (enabled, all_phases) = *MODE.get_or_init(|| {
+            let all = std::env::var_os("SYSTEMLESS_PROFILE_RENDER_PHASES").is_some();
+            (
+                all || std::env::var_os("SYSTEMLESS_PROFILE_FRAMES").is_some(),
+                all,
+            )
+        });
         Self {
             phase,
             start: enabled.then(std::time::Instant::now),
+            all_phases,
         }
     }
 }
@@ -113,9 +120,14 @@ impl Drop for FramePhaseTimer {
     fn drop(&mut self) {
         if let Some(start) = self.start {
             let elapsed = start.elapsed();
-            if elapsed >= std::time::Duration::from_millis(50) {
+            if self.all_phases || elapsed >= std::time::Duration::from_millis(50) {
                 eprintln!(
-                    "[SLOW-FRAME] {}: {:.1} ms",
+                    "[{}] {}: {:.3} ms",
+                    if self.all_phases {
+                        "FRAME-PHASE"
+                    } else {
+                        "SLOW-FRAME"
+                    },
                     self.phase,
                     elapsed.as_secs_f64() * 1000.0
                 );
@@ -2107,7 +2119,10 @@ impl App {
                 self.surface_size = Some((buf_w, buf_h));
             }
 
-            let mut buffer = surface.buffer_mut().expect("Failed to get buffer");
+            let mut buffer = {
+                let _timing = FramePhaseTimer::new("software surface acquisition");
+                surface.buffer_mut().expect("Failed to get buffer")
+            };
 
             if draw_x != 0 || draw_y != 0 || draw_w != buf_w as usize || draw_h != buf_h as usize {
                 buffer.fill(0xFF000000);
@@ -2120,6 +2135,7 @@ impl App {
                     buffer[dst_offset..dst_offset + game_w as usize].copy_from_slice(src_row);
                 }
             } else {
+                let _timing = FramePhaseTimer::new("software frame resize");
                 display::resize_argb_coverage(
                     &frame_argb,
                     (game_w, game_h),
@@ -2133,7 +2149,21 @@ impl App {
                 }
             }
 
+            #[cfg(target_os = "windows")]
+            if used_outlines {
+                if let Some(guest) = &guest_frame {
+                    let _timing = FramePhaseTimer::new("native text overlay");
+                    runner.bus().overlay_native_text(
+                        guest,
+                        &presented,
+                        (draw_x, draw_y, draw_w, draw_h),
+                        buf_w as usize,
+                        &mut buffer,
+                    );
+                }
+            }
             self.scaled_frame = scaled_frame;
+            let _timing = FramePhaseTimer::new("software frame submission");
             buffer.present().expect("Failed to present buffer");
         }
 
@@ -3130,7 +3160,10 @@ fn bind_headless_debug_server(
 ) -> Option<debug_server::DebugServer> {
     let path = path?;
     let server = debug_server::DebugServer::bind(&path).unwrap_or_else(|error| {
-        eprintln!("Error: cannot bind debug socket {}: {error}", path.display());
+        eprintln!(
+            "Error: cannot bind debug socket {}: {error}",
+            path.display()
+        );
         std::process::exit(1);
     });
     #[cfg(all(feature = "debug-server", unix))]
@@ -4632,9 +4665,7 @@ mod tests {
             waiting_for_callback: true,
             pending_callback_buffers: [true, false],
         });
-        runner
-            .dispatcher_mut()
-            .add_sound_channel(chan);
+        runner.dispatcher_mut().add_sound_channel(chan);
         runner
             .dispatcher_mut()
             .queue_sound_doubleback_callback(PendingDoubleBackCallback {
@@ -4759,9 +4790,7 @@ mod tests {
             1,
             8,
         );
-        runner
-            .dispatcher_mut()
-            .add_sound_channel(chan);
+        runner.dispatcher_mut().add_sound_channel(chan);
 
         let mut app = App::new(PathBuf::from("dummy"), false, true, false, 8);
         app.runner = Some(runner);

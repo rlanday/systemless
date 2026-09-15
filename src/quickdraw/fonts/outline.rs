@@ -7,11 +7,27 @@ static FACES: LazyLock<Mutex<HashMap<(i16, i16), Faces>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
 // Stable glyph descriptors identify their outline source without scanning faces.
-#[derive(Clone, Copy)]
-struct Source {
-    bytes: &'static [u8],
-    size: i16,
-    id: skrifa::GlyphId,
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Source {
+    pub(crate) bytes: &'static [u8],
+    pub(crate) size: i16,
+    pub(crate) id: skrifa::GlyphId,
+}
+impl PartialEq for Source {
+    fn eq(&self, other: &Self) -> bool {
+        self.bytes.as_ptr() == other.bytes.as_ptr()
+            && self.bytes.len() == other.bytes.len()
+            && self.size == other.size
+            && self.id == other.id
+    }
+}
+impl Eq for Source {}
+pub(crate) fn source(glyph: &Glyph) -> Option<Source> {
+    SOURCES
+        .lock()
+        .ok()?
+        .get(&(glyph as *const Glyph as usize))
+        .copied()
 }
 static SOURCES: LazyLock<Mutex<HashMap<usize, Source>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
@@ -483,10 +499,8 @@ mod tests {
             }
             assert_eq!(raw_extended.data, bundled_extended.data);
             assert_eq!(raw_extended.glyphs.len(), bundled_extended.glyphs.len());
-            for (raw_glyph, bundled_glyph) in raw_extended
-                .glyphs
-                .iter()
-                .zip(bundled_extended.glyphs)
+            for (raw_glyph, bundled_glyph) in
+                raw_extended.glyphs.iter().zip(bundled_extended.glyphs)
             {
                 assert_eq!(raw_glyph.mac_code, bundled_glyph.mac_code);
                 assert_same_glyph_except_advance(&raw_glyph.glyph, &bundled_glyph.glyph);

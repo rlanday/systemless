@@ -1,0 +1,140 @@
+{
+  "note": "Integrated darkness guides comparison to the old weight; it is not a perceptual quality score.",
+  "guest_data_identical": {
+    "final-ram.bin": "cf7998e6a391c4492844d8d1af9faedd43b8d9ccc8aacf913ae14c82bf97fd51",
+    "guest-frame-499.bin": "14810e539e05c69ae099f91bb05709757454bdda401eeaa9cbe3668fc79c0eff",
+    "guest-frame-649.bin": "881f6049b8815010222332491e8bd6de55c486044ff86533ba7fe4bc66c2b48d",
+    "guest-frame-849.bin": "5b3f74c28515e03c7518ae6246ade845fa1212a3fcb58730989f5004c7960812",
+    "guest-frame-999.bin": "5b3f74c28515e03c7518ae6246ade845fa1212a3fcb58730989f5004c7960812"
+  },
+  "samples": [
+    {
+      "case": "existing",
+      "width": 800,
+      "height": 600,
+      "region": "toolbar",
+      "ink_area": 232.8439024390244,
+      "dark_pixels": 96
+    },
+    {
+      "case": "existing",
+      "width": 800,
+      "height": 600,
+      "region": "menu",
+      "ink_area": 1071.3333333333333,
+      "dark_pixels": 695
+    },
+    {
+      "case": "existing",
+      "width": 1104,
+      "height": 828,
+      "region": "toolbar",
+      "ink_area": 443.0829268292683,
+      "dark_pixels": 275
+    },
+    {
+      "case": "existing",
+      "width": 1104,
+      "height": 828,
+      "region": "menu",
+      "ink_area": 2040.0196078431372,
+      "dark_pixels": 1415
+    },
+    {
+      "case": "current",
+      "width": 800,
+      "height": 600,
+      "region": "toolbar",
+      "ink_area": 187.51707317073172,
+      "dark_pixels": 29
+    },
+    {
+      "case": "current",
+      "width": 800,
+      "height": 600,
+      "region": "menu",
+      "ink_area": 963.081045751634,
+      "dark_pixels": 358
+    },
+    {
+      "case": "current",
+      "width": 1104,
+      "height": 828,
+      "region": "toolbar",
+      "ink_area": 370.25853658536585,
+      "dark_pixels": 71
+    },
+    {
+      "case": "current",
+      "width": 1104,
+      "height": 828,
+      "region": "menu",
+      "ink_area": 1879.6941176470589,
+      "dark_pixels": 910
+    },
+    {
+      "case": "contrast-05",
+      "width": 800,
+      "height": 600,
+      "region": "toolbar",
+      "ink_area": 212.15121951219513,
+      "dark_pixels": 54
+    },
+    {
+      "case": "contrast-05",
+      "width": 800,
+      "height": 600,
+      "region": "menu",
+      "ink_area": 1015.7751633986928,
+      "dark_pixels": 375
+    },
+    {
+      "case": "contrast-05",
+      "width": 1104,
+      "height": 828,
+      "region": "toolbar",
+      "ink_area": 403.23739837398375,
+      "dark_pixels": 82
+    },
+    {
+      "case": "contrast-05",
+      "width": 1104,
+      "height": 828,
+      "region": "menu",
+      "ink_area": 1961.6928104575163,
+      "dark_pixels": 923
+    },
+    {
+      "case": "contrast-10",
+      "width": 800,
+      "height": 600,
+      "region": "toolbar",
+      "ink_area": 230.39512195121952,
+      "dark_pixels": 71
+    },
+    {
+      "case": "contrast-10",
+      "width": 800,
+      "height": 600,
+      "region": "menu",
+      "ink_area": 1057.9254901960785,
+      "dark_pixels": 456
+    },
+    {
+      "case": "contrast-10",
+      "width": 1104,
+      "height": 828,
+      "region": "toolbar",
+      "ink_area": 427.6861788617886,
+      "dark_pixels": 95
+    },
+    {
+      "case": "contrast-10",
+      "width": 1104,
+      "height": 828,
+      "region": "menu",
+      "ink_area": 2026.4745098039216,
+      "dark_pixels": 1047
+    }
+  ]
+}

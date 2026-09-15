@@ -66,6 +66,7 @@ impl PresentationSlot {
                     let mut cell = DetailCell {
                         value,
                         indices: vec![value; (p.scale * p.scale) as usize],
+                        native: None,
                         ink: HashMap::new(),
                     };
                     for sy in 0..p.scale {

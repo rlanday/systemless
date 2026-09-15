@@ -3,6 +3,7 @@
 //! outline glyphs retain indexed coverage through snapshots and pixel transfers.
 //! Frontends consume the presentation at its physical dimensions.
 mod controls;
+mod native_text;
 
 use super::{MacMemoryBus, MemoryBus};
 use crate::quickdraw::fonts::{outline, Glyph};
@@ -79,6 +80,7 @@ impl PresentationSlot {
                     if let Some(palette) = palette {
                         let mut detail = detail.clone();
                         let mapped = Arc::make_mut(&mut detail);
+                        mapped.map_native(&mut |index| palette[index as usize]);
                         mapped.value = palette[mapped.value as usize];
                         for index in &mut mapped.indices {
                             *index = palette[*index as usize];
@@ -225,6 +227,7 @@ struct DetailCell {
     value: u8,
     indices: Vec<u8>,
     ink: HashMap<usize, Ink>,
+    native: Option<Arc<native_text::NativeCell>>,
 }
 
 /// Evidence for an indexed recoloring performed by guest CPU stores between
@@ -302,6 +305,7 @@ impl<T> SavedPixels<T> {
         self.identity = next_snapshot_identity();
         for (&offset, cell) in &mut self.detail {
             let cell = Arc::make_mut(cell);
+            cell.map_native(&mut |index| map(offset, index));
             cell.value = map(offset, cell.value);
             for value in &mut cell.indices {
                 *value = map(offset, *value);
@@ -373,6 +377,10 @@ impl Hasher for SampleOffsetHasher {
 }
 
 pub(crate) struct Presentation {
+    native_enabled: bool,
+    native_cells: HashMap<u32, Arc<native_text::NativeCell>>,
+    native_source: Option<(outline::Source, i16, i16)>,
+    native_run: u64,
     revision: u64,
     cpu_drawing: bool,
     cpu_recolor: Option<CpuRecolor>,
@@ -464,6 +472,7 @@ impl Presentation {
                 complete &= mapped < 256;
                 mapped as u8
             };
+            cell.map_native(&mut map);
             cell.value = map(cell.value);
             for index in &mut cell.indices {
                 *index = map(*index);
@@ -773,6 +782,7 @@ impl Presentation {
         let mut cell = DetailCell {
             value: self.guest_values[(y * self.width + x) as usize] as u8,
             indices: Vec::new(),
+            native: self.native_cells.get(&address).cloned(),
             ink: HashMap::new(),
         };
         for sy in 0..self.scale {
@@ -800,6 +810,7 @@ impl Presentation {
         };
         if !self.text_cells[(y * self.width + x) as usize]
             || self.guest_values[(y * self.width + x) as usize] != u16::from(cell.value)
+            || self.native_cells.get(&address) != cell.native.as_ref()
             || cell.indices.len() != (self.scale * self.scale) as usize
         {
             return false;
@@ -813,8 +824,8 @@ impl Presentation {
         for sy in 0..self.scale {
             for sx in 0..self.scale {
                 let i = (sy * self.scale + sx) as usize;
-                let pixel =
-                    ((y * self.scale + sy) * self.width * self.scale + x * self.scale + sx) as usize;
+                let pixel = ((y * self.scale + sy) * self.width * self.scale + x * self.scale + sx)
+                    as usize;
                 if self.pixel_indices[pixel] != cell.indices[i]
                     || self.ink.get(&(pixel * 3)) != cell.ink.get(&i)
                 {
@@ -850,6 +861,11 @@ impl Presentation {
         if cell.indices.len() != (self.scale * self.scale) as usize {
             return;
         }
+        if let Some(native) = &cell.native {
+            self.native_cells.insert(address, native.clone());
+        } else {
+            self.native_cells.remove(&address);
+        }
         self.text_cells[(y * self.width + x) as usize] = true;
         self.detail_cache.get_mut()[(y * self.width + x) as usize] = Some(cell.clone());
         self.guest_values[(y * self.width + x) as usize] = cell.value.into();
@@ -878,11 +894,12 @@ impl Presentation {
     pub fn glyph_bounds(&self) -> Option<(i32, i32, i32, i32)> {
         let (g, h, v) = self.glyph.as_ref()?;
         let scale = self.scale as i32;
+        let margin = if self.native_source.is_some() { 2 } else { 0 };
         Some((
-            i32::from(*v) + g.top.div_euclid(scale),
-            i32::from(*h) + g.left.div_euclid(scale),
-            i32::from(*v) + (g.top + g.height + scale - 1).div_euclid(scale),
-            i32::from(*h) + (g.left + g.width + scale - 1).div_euclid(scale),
+            -margin + i32::from(*v) + g.top.div_euclid(scale),
+            -margin + i32::from(*h) + g.left.div_euclid(scale),
+            margin + i32::from(*v) + (g.top + g.height + scale - 1).div_euclid(scale),
+            margin + i32::from(*h) + (g.left + g.width + scale - 1).div_euclid(scale),
         ))
     }
 
@@ -913,6 +930,7 @@ impl Presentation {
             {
                 return;
             }
+            self.native_write(address, value);
             if self.offscreen.contains_key(&address) || self.glyph.is_some() {
                 self.revision = self.revision.wrapping_add(1);
             }
@@ -922,10 +940,14 @@ impl Presentation {
                     cell.value = value;
                 }
             } else if self.erasing_text
-                && self
+                && (self
                     .offscreen_run_ink
                     .iter()
                     .any(|(addr, _)| *addr == address)
+                    || self
+                        .offscreen
+                        .get(&address)
+                        .is_some_and(|cell| cell.native.is_some()))
             {
                 if let Some(cell) = self.offscreen.get_mut(&address) {
                     let cell = Arc::make_mut(cell);
@@ -948,6 +970,7 @@ impl Presentation {
         } else {
             self.finish_cpu_recolor();
         }
+        self.native_write(address, value);
         self.detail_cache.get_mut()[cell] = None;
         if self.glyph.is_some() {
             self.revision = self.revision.wrapping_add(1);
@@ -987,12 +1010,16 @@ impl Presentation {
                 self.pixels[offset..offset + 3].copy_from_slice(&color);
             }
         }
+        // ClearType can cover a cell that has no ink on the retained 4x grid.
+        // Keep that cell eligible for snapshots while a native run survives.
+        self.text_cells[cell] |= self.native_cells.contains_key(&address);
     }
 
     /// Called for every visible glyph cell, including cells with zero 1x ink.
     /// QuickDraw has already applied both the visibility and clipping regions.
     pub fn glyph_pixel(&mut self, address: u32, x: i16, y: i16, foreground: u8, background: u8) {
         self.revision = self.revision.wrapping_add(1);
+        self.record_native_glyph(address, x, y, foreground, background);
         let Some((px, py)) = self.position(address) else {
             if self.glyph.is_none() {
                 return;
@@ -1005,6 +1032,7 @@ impl Presentation {
                 Arc::new(DetailCell {
                     value: background,
                     indices: vec![background; (self.scale * self.scale) as usize],
+                    native: None,
                     ink: HashMap::new(),
                 })
             });
@@ -1239,6 +1267,7 @@ impl MacMemoryBus {
         let mut cell = DetailCell {
             value,
             indices: vec![value; (scale * scale) as usize],
+            native: None,
             ink: HashMap::new(),
         };
         let color = |cell: Option<&DetailCell>, i: usize, fallback| {
@@ -1293,6 +1322,7 @@ impl MacMemoryBus {
         if let Some(cell) = pixels.detail.get(&offset) {
             let mut cell = cell.clone();
             let mapped = Arc::make_mut(&mut cell);
+            mapped.map_native(&mut |index| map(index));
             mapped.value = value;
             for index in &mut mapped.indices {
                 *index = map(*index);
@@ -1430,6 +1460,7 @@ impl MacMemoryBus {
         self.write_byte(address, value);
         if let Some(cell) = &mut cell {
             let mapped = Arc::make_mut(cell);
+            mapped.map_native(&mut |index| map(index));
             mapped.value = value;
             for index in &mut mapped.indices {
                 *index = map(*index);
@@ -1742,6 +1773,12 @@ impl MacMemoryBus {
             run_ink: HashSet::default(),
             offscreen_run_ink: HashSet::new(),
             in_text_run: false,
+            native_enabled: cfg!(target_os = "windows")
+                && depth == 8
+                && std::env::var_os("SYSTEMLESS_CLEARTYPE_PROTOTYPE").is_some(),
+            native_cells: HashMap::new(),
+            native_source: None,
+            native_run: 0,
             erasing_text: false,
             glyph: None,
             glyph_count: 0,
@@ -1809,6 +1846,7 @@ impl PresentationSlot {
             p.run_ink.clear();
             p.offscreen_run_ink.clear();
             p.in_text_run = opaque;
+            p.native_run = p.native_run.wrapping_add(1);
         }
     }
 
@@ -1833,6 +1871,12 @@ impl PresentationSlot {
         let Some(mut p) = self.as_mut() else {
             return;
         };
+        p.native_source =
+            if p.native_enabled && !bold && italic_descent.is_none() && underline.is_none() {
+                outline::source(glyph).map(|source| (source, x, y))
+            } else {
+                None
+            };
         if let Some(mut outline) = outline::presentation_glyph(glyph, data, p.scale) {
             if let Some(descent) = italic_descent {
                 // Apply the shared QuickDraw shear on the physical grid rather
@@ -1926,6 +1970,7 @@ impl PresentationSlot {
         let Some(radius) = style.smear_max() else {
             return;
         };
+        p.native_source = None;
         let scale = p.scale as i32;
         let pad = scale;
         let width = glyph.width + pad + radius * scale;
@@ -1961,6 +2006,7 @@ impl PresentationSlot {
     pub(crate) fn end_outline_glyph(&mut self) {
         if let Some(mut p) = self.as_mut() {
             p.glyph = None;
+            p.native_source = None;
         }
     }
 }

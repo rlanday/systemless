@@ -76,6 +76,9 @@ debug = []
 # Debugger socket transport (Unix-domain sockets). Implies `debug`.
 debug-server = ["debug"]
 
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.54", features = ["Win32_Foundation", "Win32_Graphics_DirectWrite", "Win32_Graphics_Gdi"] }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.5.2", optional = true }
 objc2-app-kit = { version = "0.2.2", optional = true, features = ["NSApplication", "NSBitmapImageRep", "NSCursor", "NSCell", "NSGraphics", "NSImage", "NSImageRep", "NSMenu", "NSMenuItem"] }
