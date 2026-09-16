@@ -1,0 +1,15 @@
+{
+  "historical_systemless_commit": "0540ef827d800fbdb00eafc67922cef3245b81e5",
+  "google_fonts_commit": "1ac2012c34919f5fa2675aacf723fa98edb30b5f",
+  "systemless_base": "724e18f438bdc058fd9773dfec628449e73a5377",
+  "sources": {
+    "sources/geneva9-advances.bin": "44262c59655597d527318a7ba9b62350defba4f556cb97172d0fea05a6f0fd35",
+    "sources/kurrajong/geneva9.rs": "2578381b3fcf9f3bde359d1b258bcf0b95fcff8ea3181863d0c395c7563bfada",
+    "sources/kurrajong/OFL.txt": "132de6f93e9b2d469eac93903be3388ce8599ef1a9911e3d09811a4c30fb6221",
+    "sources/kurrajong/geneva24.rs": "f2cdefb0c53922fe0de9513b873d2a3ff5aecc1a9a674d0104abaf446c7d4a19",
+    "sources/nimbus/NimbusSans-Regular.ttf": "df5d1ce7b86c2e74974008623612bae136123a35ba7885de8a0721b68258edbc",
+    "sources/nimbus/OFL.txt": "5defa64c721ef9a2c590e044582789791f4483fd18471331b543cfcdf7741cc3",
+    "sources/inter/Inter[opsz,wght].ttf": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+    "sources/inter/OFL.txt": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57"
+  }
+}

@@ -6,6 +6,25 @@ type Faces = (&'static FontFace, &'static MacRomanFace);
 static FACES: LazyLock<Mutex<HashMap<(i16, i16), Faces>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
+// Experimental comparison only: one optical size, selected once per process.
+// Resource fonts retain precedence because they are resolved before this fallback.
+static GENEVA_COMPARISON: LazyLock<Option<&'static [u8]>> = LazyLock::new(|| {
+    let path = std::env::var_os("SYSTEMLESS_GENEVA9_COMPARISON")?;
+    match std::fs::read(&path) {
+        Ok(data) => {
+            eprintln!(
+                "[FONT-COMPARISON] Geneva/Application 9: {}",
+                std::path::Path::new(&path).display()
+            );
+            Some(&*Box::leak(data.into_boxed_slice()))
+        }
+        Err(error) => {
+            eprintln!("[FONT-COMPARISON] Cannot read candidate: {error}; using bundled font");
+            None
+        }
+    }
+});
+
 // Stable glyph descriptors identify their outline source without scanning faces.
 #[derive(Clone, Copy)]
 struct Source {
@@ -29,13 +48,36 @@ pub(super) fn face(font_id: i16, size: i16) -> Option<Faces> {
     if let Some(faces) = cache.get(&(font_id, size)) {
         return Some(*faces);
     }
-    let faces = rasterize(
+    let mut faces = rasterize(
         font_id,
         size,
         bytes,
         super::compatibility::bundled_advances(font_id, size),
         super::compatibility::bundled_wid_max(font_id, size),
     )?;
+    if size == 9 && matches!(font_id, FONT_APPLICATION | FONT_GENEVA) {
+        if let Some(candidate) = *GENEVA_COMPARISON {
+            if let Some((candidate_face, _)) = rasterize(
+                font_id,
+                size,
+                candidate,
+                super::compatibility::bundled_advances(font_id, size),
+                super::compatibility::bundled_wid_max(font_id, size),
+            ) {
+                // Change ASCII artwork only. Retain GetFontInfo and extended
+                // Mac Roman glyphs from the control for a focused comparison.
+                faces.0 = Box::leak(Box::new(FontFace {
+                    font_id,
+                    size,
+                    metrics: faces.0.metrics,
+                    glyphs: candidate_face.glyphs,
+                    data: candidate_face.data,
+                }));
+            } else {
+                eprintln!("[FONT-COMPARISON] Invalid candidate; using bundled font");
+            }
+        }
+    }
     cache.insert((font_id, size), faces);
     Some(faces)
 }
@@ -483,10 +525,8 @@ mod tests {
             }
             assert_eq!(raw_extended.data, bundled_extended.data);
             assert_eq!(raw_extended.glyphs.len(), bundled_extended.glyphs.len());
-            for (raw_glyph, bundled_glyph) in raw_extended
-                .glyphs
-                .iter()
-                .zip(bundled_extended.glyphs)
+            for (raw_glyph, bundled_glyph) in
+                raw_extended.glyphs.iter().zip(bundled_extended.glyphs)
             {
                 assert_eq!(raw_glyph.mac_code, bundled_glyph.mac_code);
                 assert_same_glyph_except_advance(&raw_glyph.glyph, &bundled_glyph.glyph);

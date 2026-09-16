@@ -1,0 +1,77 @@
+{
+  "base": "724e18f438bdc058fd9773dfec628449e73a5377",
+  "native_windows": true,
+  "scenes": [
+    "city",
+    "new-city"
+  ],
+  "sizes": [
+    [
+      800,
+      600
+    ],
+    [
+      1104,
+      828
+    ]
+  ],
+  "variants": {
+    "control": {
+      "guest_metrics_equal_to_control": true,
+      "images": {
+        "control/city-100.png": "f0640c2d48ef40a998c6a0f7d20ed989e58c5ae344e86a7bb7d7f7be0264c368",
+        "control/city-138.png": "82e0ababa9671a38c11b9c4129f9c14d952eadf9a00375199d6efcaa0082af07",
+        "control/new-city-100.png": "c06399c4d7102ad13c41cd198d26488651d25277d3921ac45eccb898464c731f",
+        "control/new-city-138.png": "bf4b1e1205a0f86c56b12eeedfe59fd67f991471cc8e20047e8bdc6fea445ce1",
+        "control/samples-100.png": "9e71aed6c42293b54a584231a72eb0f23f5fae07f41519fb90e67b70d713d756",
+        "control/samples-138.png": "2dfab43ea260778abac31a9c9d873df936ea82f780768a853d98c33caf38eeed"
+      }
+    },
+    "kurrajong-curves": {
+      "guest_metrics_equal_to_control": true,
+      "images": {
+        "kurrajong-curves/city-100.png": "9a32105c04273f539b7b2904561b96dc1f6ebe265dce4e89707b552103d82772",
+        "kurrajong-curves/city-138.png": "40aa95e1ed5ad03fed8aff0ee8c76090a366b67deb9f49c7c0247f0cc7b0fd79",
+        "kurrajong-curves/new-city-100.png": "ed09dbf19a0c4eeb771ba64b930174ea4f43ddd501bad73eb8b6914272955370",
+        "kurrajong-curves/new-city-138.png": "e8b1beb1e016d127196baeafaea5dbcdb4c43e0fe75b794949ac9f5c58f249c3",
+        "kurrajong-curves/samples-100.png": "e536d614f9fe1a3694e24b51b86c89a1b56af45f4ce326c16acfe7a3fbb7815f",
+        "kurrajong-curves/samples-138.png": "9c1ccb5c89a86e528404a5edc294bda8c9609bb4a546547db3878474ee46a052"
+      }
+    },
+    "inter-fitted": {
+      "guest_metrics_equal_to_control": true,
+      "images": {
+        "inter-fitted/city-100.png": "7de407a10ee9d3f7c84dd6ed89acae21c87e3c5fb6f920873903f6f3c0a1daa2",
+        "inter-fitted/city-138.png": "4962c071bf5f2b3703f3767e8c0bf350c96d10c0c78e91bc9b65fa99206cdcb1",
+        "inter-fitted/new-city-100.png": "9e3134721c8631aeb84d781c12cd6906cf8c7d754cfcc1acdb54ef29508eda7c",
+        "inter-fitted/new-city-138.png": "a9b5a86133cddf5c21728ad1ea21de64978706da51e3cdf92994217e3ea21d1c",
+        "inter-fitted/samples-100.png": "da2e13138b115a8e735f6ce2209c89014fe768cbdba530ad2bac28c3488a9877",
+        "inter-fitted/samples-138.png": "d81d6d276009851e0e7a5e3f244c3669604491fd34f1f2e8c5dc18b116283f0b"
+      }
+    },
+    "nimbus-fitted": {
+      "guest_metrics_equal_to_control": true,
+      "images": {
+        "nimbus-fitted/city-100.png": "0f220e059eadaedc7bf26c5ea904c579e0e08e37d9f8710eae4944b4e3052aed",
+        "nimbus-fitted/city-138.png": "277546a61c44fb5065041473f7308d7c671e050c10c987c292fbdbfcc2c8f6eb",
+        "nimbus-fitted/new-city-100.png": "f2ac24bdbf844aa759089c2e111fe1382c3d208f704badae7412ca2f8b917e62",
+        "nimbus-fitted/new-city-138.png": "71850af0c25b6bde89be88033bdbcae265077876b868d46ee491815223f9deb7",
+        "nimbus-fitted/samples-100.png": "222290f9764766d7f0b9f04c43aaa53fb87bd68cc85bfdd49c9729f665a25788",
+        "nimbus-fitted/samples-138.png": "b9e6064c711c959d12199d223faf10e5ad990c617b08b493b6d82484605a8039"
+      }
+    },
+    "original-geneva": {
+      "guest_metrics_equal_to_control": false,
+      "images": {
+        "original-geneva/city-100.png": "3d67cd9fcfeec1636ab861efd4865d61bf287ee7ad820ec0d8e3133426d46699",
+        "original-geneva/city-138.png": "597d1e0a4734755f3cd31a964ff88d20fb6920553f004ff644d50aee74dc2f84",
+        "original-geneva/new-city-100.png": "396b0770ce0b06db6a71edd55c49eb93db59ccce22e23331d3feb1ba10d05fee",
+        "original-geneva/new-city-138.png": "0f14bebfa9599a9f69a29cf259265ecdb7515ed9292d65529792dd56c627c90f",
+        "original-geneva/samples-100.png": "05831248ca77e98528c2c5355281b3410f5cd16ef227a8a45370f7b0e4715b7d",
+        "original-geneva/samples-138.png": "4be946e1653b586cd45a558987cbe84d58b3b7002b9c2dece1eec159741e7016"
+      }
+    }
+  },
+  "scope": "Visual studies only; timing runs and production compatibility checks remain.",
+  "review_location": "Local font-candidates/review/index.html; Apple reference binaries and screenshots are not bundled here."
+}
