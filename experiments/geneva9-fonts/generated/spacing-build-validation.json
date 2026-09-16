@@ -1,0 +1,69 @@
+{
+  "changed_unhinted_glyphs": [
+    "uni0026",
+    "uni0063",
+    "uni0069",
+    "uni006D"
+  ],
+  "all_advances_unchanged": true,
+  "accepted_t_unchanged": true,
+  "font_sha256": "7ab2e122cfb3daead8814b58a51949b8e96f806746133f380adf3dd53ef15150",
+  "glyphs": {
+    "c": {
+      "before": {
+        "advance": 5.0,
+        "ink_left": 0.0,
+        "ink_right": 3.0,
+        "right_space": 2.0
+      },
+      "after": {
+        "advance": 5.0,
+        "ink_left": 0.0,
+        "ink_right": 4.0,
+        "right_space": 1.0
+      }
+    },
+    "i": {
+      "before": {
+        "advance": 3.0,
+        "ink_left": 0.0,
+        "ink_right": 1.0,
+        "right_space": 2.0
+      },
+      "after": {
+        "advance": 3.0,
+        "ink_left": 1.0,
+        "ink_right": 2.0,
+        "right_space": 1.0
+      }
+    },
+    "m": {
+      "before": {
+        "advance": 8.0,
+        "ink_left": 0.0,
+        "ink_right": 6.0,
+        "right_space": 2.0
+      },
+      "after": {
+        "advance": 8.0,
+        "ink_left": 0.0,
+        "ink_right": 7.0,
+        "right_space": 1.0
+      }
+    },
+    "&": {
+      "before": {
+        "advance": 8.0,
+        "ink_left": 0.0,
+        "ink_right": 5.0,
+        "right_space": 3.0
+      },
+      "after": {
+        "advance": 8.0,
+        "ink_left": 1.0,
+        "ink_right": 6.0,
+        "right_space": 2.0
+      }
+    }
+  }
+}

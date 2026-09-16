@@ -1,0 +1,23 @@
+{
+  "changed_unhinted_glyphs": [
+    "uni0074"
+  ],
+  "all_advances_and_bearings_unchanged": true,
+  "t_advance_at_9": 4.0,
+  "t_before_bounds": [
+    0,
+    0,
+    300,
+    700
+  ],
+  "t_after_bounds": [
+    0,
+    -6,
+    300,
+    619
+  ],
+  "source_x_height": 1118,
+  "scale_y": 0.4472271914132379,
+  "font_sha256": "b207228a2ce8c62d4a6ecc85b9197a3625dc087d7be827d23e2ab4bd660279cd",
+  "note": "Raster checks are required because rehinting regenerates shared font tables."
+}

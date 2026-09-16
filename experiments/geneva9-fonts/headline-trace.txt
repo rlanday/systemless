@@ -1,0 +1,1 @@
+[DIALOG-TEXT] DrawString pc=$0023D732 current_port=$00435FE8 pnLoc=(22, 4) fg=(0000,0000,0000) bg=(FFFF,FFFF,FFFF) mode=1 text="Citizens Demand Road&Rail"

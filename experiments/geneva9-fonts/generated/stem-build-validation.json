@@ -1,0 +1,36 @@
+{
+  "changed_unhinted_glyphs": [
+    "uni006A",
+    "uni006C",
+    "uni0072",
+    "uni0074"
+  ],
+  "all_advances_unchanged": true,
+  "all_vertical_coordinates_unchanged": true,
+  "t_crossbar_unchanged": true,
+  "font_sha256": "f01e6080a3344129714abacea604e3ec4fedd1d7623be7233a03ff7f1b4338ad",
+  "straight_stem_widths_at_9": {
+    "n_reference": 0.81,
+    "m_reference": [
+      0.73,
+      0.74,
+      0.73
+    ],
+    "j": [
+      0.9,
+      0.8
+    ],
+    "r": [
+      1.27,
+      0.8
+    ],
+    "l": [
+      1.0,
+      0.8
+    ],
+    "t": [
+      0.88,
+      0.8
+    ]
+  }
+}

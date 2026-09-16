@@ -22,4 +22,20 @@ Original Apple Geneva 9 is a separate local bitmap reference extracted from the 
 
 Requires FontTools 4.65.0, Potrace 1.16, and ttfautohint 1.8.4. Run `python build.py`; `POTRACE` and `TTFAUTOHINT` can select tool paths. Inputs and their SHA-256 hashes are under `sources/`; each source keeps its OFL license. Inter and Nimbus derivatives use new family names. Generated fonts remain OFL-1.1. Review the output in Systemless at actual screen size: browser font rasterization is not a substitute for the game's Skrifa/retained-coverage path.
 
-The comparison needs visual selection before further refinement or a PR. Small text must preserve the accepted weight, and both native and fractional-size city views must be reviewed. Performance measurements for any production proposal must include both sizes on the same base and report power conditions.
+The selected study still needs visual and compatibility validation before a production PR. Small text must preserve the accepted weight, and both native and fractional-size city views must be reviewed. Performance measurements for any production proposal must include both sizes on the same base and report power conditions.
+
+## Selected direction: Coppet
+
+The user preferred fitted Inter and named the derivative **Coppet**. Version 0.002 is `generated/Coppet-Regular.ttf`. It corrects lowercase t only: fit the crossbar to the five-pixel lowercase height using Inter’s original x-height, instead of stretching the glyph to the seven-pixel cap-height bitmap bounds. Its outline height changes from 7 to approximately 6.19 logical pixels. The advance remains 4.
+
+Run `python refine-inter-t.py` after `python build.py` to reproduce this revision. Original study files remain available for before/after comparisons. Font names and filenames reflect Coppet; Inter’s attribution and OFL license are retained. This remains a 9-point ASCII optical study.
+
+Native Windows Skrifa/zeno checks compare each ASCII glyph at the 9-pixel monochrome guest size and 36-pixel retained grayscale size: only t changes in either mode. The other 94 glyphs have identical raster pixels and placements. All advances and bearings are unchanged. `validation-t.json` records the check and font hash. Native and 138% samples and city screenshots were rendered through the same Systemless build. The user accepted the t proportions.
+
+## Spacing and stroke weight refinement
+
+The current candidate is `generated/Coppet-Refined.ttf`, version 0.010. Rebuild it with `python refine-spacing.py` followed by `python refine-stems.py` after the t revision. See [spacing-weight.md](spacing-weight.md) for the diagnosis, optical changes, native-size placement checks, and remaining review items. Intermediate fonts remain comparison inputs; none is a production default.
+
+The user called the first spacing/stem revision a big improvement, while reporting a narrow/light c and blurry i/l at native size. Version 0.010 addresses those reports and still needs visual review. A previous fractional-position trial produced empty one-bit i/l masks; it was rejected during compatibility validation. All non-space ASCII masks must contain ink before a candidate is considered usable.
+
+`validation-name.json` verifies that adopting the final name Coppet changed no outline, metric, mapping or hinting tables in the six comparison font files. The existing native rendering checks therefore apply to the renamed fonts.

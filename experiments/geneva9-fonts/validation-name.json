@@ -1,0 +1,102 @@
+{
+  "family": "Coppet",
+  "name_selected_by_user": true,
+  "rendering_tables_unchanged": [
+    {
+      "variant": "Regular",
+      "unchanged_tables": [
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "fpgm",
+        "prep",
+        "cvt ",
+        "loca",
+        "glyf",
+        "post",
+        "gasp"
+      ],
+      "sha256": "b207228a2ce8c62d4a6ecc85b9197a3625dc087d7be827d23e2ab4bd660279cd"
+    },
+    {
+      "variant": "Regular-unhinted",
+      "unchanged_tables": [
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "loca",
+        "glyf",
+        "post"
+      ],
+      "sha256": "39c5e9251db67463aec2decb4467fa542b4ecc198ca9e4ab72a9f425e19f187d"
+    },
+    {
+      "variant": "Spacing",
+      "unchanged_tables": [
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "fpgm",
+        "prep",
+        "cvt ",
+        "loca",
+        "glyf",
+        "post",
+        "gasp"
+      ],
+      "sha256": "7ab2e122cfb3daead8814b58a51949b8e96f806746133f380adf3dd53ef15150"
+    },
+    {
+      "variant": "Spacing-unhinted",
+      "unchanged_tables": [
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "loca",
+        "glyf",
+        "post"
+      ],
+      "sha256": "cba4a3dbb248425ee3326eb9a8e88db9a863f0d5dac045ef14fa746f4a6cbc0d"
+    },
+    {
+      "variant": "Refined",
+      "unchanged_tables": [
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "fpgm",
+        "prep",
+        "cvt ",
+        "loca",
+        "glyf",
+        "post",
+        "gasp"
+      ],
+      "sha256": "f01e6080a3344129714abacea604e3ec4fedd1d7623be7233a03ff7f1b4338ad"
+    },
+    {
+      "variant": "Refined-unhinted",
+      "unchanged_tables": [
+        "hhea",
+        "maxp",
+        "OS/2",
+        "hmtx",
+        "cmap",
+        "loca",
+        "glyf",
+        "post"
+      ],
+      "sha256": "af8133087e2a013cd9a0577a71c2a119668aecefb927787b7cb075a7604f8974"
+    }
+  ]
+}
