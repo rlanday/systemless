@@ -3,6 +3,8 @@
 //! outline glyphs retain indexed coverage through snapshots and pixel transfers.
 //! Frontends consume the presentation at its physical dimensions.
 mod controls;
+mod compact;
+pub use compact::CompactPresentation;
 
 use super::{MacMemoryBus, MemoryBus};
 use crate::quickdraw::fonts::{outline, Glyph};
@@ -1977,7 +1979,7 @@ mod tests {
         bus
     }
 
-    fn paint_detail(bus: &mut MacMemoryBus, address: u32) {
+    pub(super) fn paint_detail(bus: &mut MacMemoryBus, address: u32) {
         bus.presentation.as_mut().unwrap().glyph = Some((
             OutlineGlyph {
                 pixels: vec![64, 255, 0, 128],
