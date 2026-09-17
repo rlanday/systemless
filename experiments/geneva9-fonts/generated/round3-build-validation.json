@@ -1,0 +1,93 @@
+[
+  {
+    "variant": "Weight",
+    "version": "0.013",
+    "changed_outlines": [
+      "P",
+      "i",
+      "j",
+      "l",
+      "y"
+    ],
+    "T_shift": 0,
+    "advances_unchanged": true,
+    "i_guest_hint": "9 ppem only: shift real contour points +16/64 pixel in x; no phantom point movement",
+    "parameters": {
+      "P_stem": 80,
+      "j_stem": 72,
+      "y_Inter_weight": 360,
+      "i_shift": -25,
+      "l_shift": 20
+    },
+    "sha256": "1d62c2cc65e819c15760e89229ed8ff6180b4dc759c5b12c456d6013075ac88b"
+  },
+  {
+    "variant": "T25",
+    "version": "0.014",
+    "changed_outlines": [
+      "P",
+      "T",
+      "i",
+      "j",
+      "l",
+      "y"
+    ],
+    "T_shift": 25,
+    "advances_unchanged": true,
+    "i_guest_hint": "9 ppem only: shift real contour points +16/64 pixel in x; no phantom point movement",
+    "parameters": {
+      "P_stem": 80,
+      "j_stem": 72,
+      "y_Inter_weight": 360,
+      "i_shift": -25,
+      "l_shift": 20
+    },
+    "sha256": "8a89b93264a6c77beb07addd767a2b394d8c7c6e3849ba74fe3d9108d8405b57"
+  },
+  {
+    "variant": "T100",
+    "version": "0.015",
+    "changed_outlines": [
+      "P",
+      "T",
+      "i",
+      "j",
+      "l",
+      "y"
+    ],
+    "T_shift": 100,
+    "advances_unchanged": true,
+    "i_guest_hint": "9 ppem only: shift real contour points +16/64 pixel in x; no phantom point movement",
+    "parameters": {
+      "P_stem": 80,
+      "j_stem": 72,
+      "y_Inter_weight": 360,
+      "i_shift": -25,
+      "l_shift": 20
+    },
+    "sha256": "42ba16c3c67710015924746701e2a430ed5d292cdee8d995ca303ce277fe228a"
+  },
+  {
+    "variant": "T50-AuditOnly",
+    "version": "0.016",
+    "changed_outlines": [
+      "P",
+      "T",
+      "i",
+      "j",
+      "l",
+      "y"
+    ],
+    "T_shift": 50,
+    "advances_unchanged": true,
+    "i_guest_hint": "9 ppem only: shift real contour points +16/64 pixel in x; no phantom point movement",
+    "parameters": {
+      "P_stem": 80,
+      "j_stem": 72,
+      "y_Inter_weight": 360,
+      "i_shift": -25,
+      "l_shift": 20
+    },
+    "sha256": "bc95098bbd78101f168defec4a76c2d905aa08aeb608bb9d6c07e1dcec84bdf4"
+  }
+]

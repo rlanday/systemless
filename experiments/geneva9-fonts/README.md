@@ -42,6 +42,10 @@ The user called the first spacing/stem revision a big improvement, while reporti
 
 ## Second optical review
 
-The next candidates are `generated/Coppet-Round2-Plain.ttf` (0.011) and `generated/Coppet-Round2-Foot.ttf` (0.012). Run `python refine-round2.py` after the previous steps. They preserve the accepted Demand/ampersand treatment, adjust c/j/l/r/s/t, and differ from each other only in lowercase l. Neither l variant has been selected by the user. See [round2-review.md](round2-review.md) for shared design parameters, spacing tradeoffs, the remaining Tool pair, and native validation.
+The user selected the curved-foot lowercase l in `generated/Coppet-Round2-Foot.ttf` (0.012) at 100% and 138%. `selection.json` records current choices and their scope; they do not imply acceptance of every other recent glyph edit. `generated/Coppet-Round2-Plain.ttf` (0.011) remains a comparison input. Run `python refine-round2.py` after the previous steps. The variants preserve the accepted Demand/ampersand treatment, adjust c/j/l/r/s/t, and differ from each other only in lowercase l. See [round2-review.md](round2-review.md) for shared design parameters, spacing tradeoffs, the remaining Tool pair, and native validation.
 
 `render-round2.rs` produces the current proof sheet and deterministic SC2K city/dialog screenshots through the comparison branch's Windows renderer. `verify-round2.py CAPTURE_ROOT` verifies the resulting glyph audits and records hashes in `validation-round2.json`. Original Geneva remains a local reference only. The current approach continues to modify Inter outlines; a METAFONT redesign is deferred.
+
+## Rail, minimum and Tool follow-up
+
+The user chose the curved-foot l shape, then requested further i/l spacing and P/y/j weight corrections. `refine-round3.py` generates those changes plus two separately reviewable T placement trials. The user selected the small T shift; `generated/Coppet-Round3-T25.ttf` (0.014) is the current review candidate. The other weight/spacing changes still need adjustment. See [round3-review.md](round3-review.md) for the new size-specific i hint, native validation, T-o kerning investigation and rejected half-pixel T trial. `render-round3.rs`, `audit-i-hint.rs` and `verify-round3.py` reproduce the proof and checks.

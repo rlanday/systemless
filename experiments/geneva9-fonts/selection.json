@@ -1,0 +1,20 @@
+{
+  "typeface": "Coppet",
+  "current_candidate": "generated/Coppet-Round3-T25.ttf",
+  "sha256": "8a89b93264a6c77beb07addd767a2b394d8c7c6e3849ba74fe3d9108d8405b57",
+  "version": "0.014",
+  "latest_user_choice": "Small T shift",
+  "review_context": "Tool compared with AT, TT and STREET",
+  "scope": "Curved-foot l shape and +0.25 logical-pixel T placement selected. Rail/minimum spacing and P/y/j weight still need adjustment.",
+  "pending": [
+    "Review c/r/s and t stem refinement, and h/n/m arches",
+    "Refine round-three P/y/j weight and Rail/minimum spacing based on remaining feedback",
+    "Review capitals, figures and punctuation",
+    "Validate GUI interaction, clipping, font precedence and native/scaled performance before a production PR"
+  ],
+  "round3_user_feedback": "Small T shift selected. Other weight/i-l spacing still needs adjustment; specific remaining defects requested.",
+  "approved_choices": {
+    "lowercase_l_shape": "Inter-derived curved foot",
+    "capital_T_translation_font_units": 25
+  }
+}

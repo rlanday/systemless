@@ -7,7 +7,7 @@ The scope remains 95 printable ASCII glyphs at logical size 9. Version 0.010 is 
 - `Coppet-Round2-Plain.ttf`, version 0.011: a thinner straight l moved left.
 - `Coppet-Round2-Foot.ttf`, version 0.012: Inter's existing `l.ss02` curved-foot alternate, fitted to the same advance and narrow stem parameter.
 
-Neither l variant is a final selection. Inter's OFL attribution is retained, and no original Apple artwork was used to construct the candidates.
+The user selected the **curved-foot l** for the current candidate after comparing kl, little and Tool at 100% and 138%. The straight l remains a comparison input. This selection applies to l; the other recent glyph changes still need review. Inter's OFL attribution is retained, and no original Apple artwork was used to construct the candidates.
 
 ## Shared parameters and optical changes
 
@@ -62,6 +62,6 @@ The new proof includes human, humane, hammer and separate h/n/m combinations. It
 
 ## Remaining work
 
-Visual review is pending. Check the l tradeoff in both directions, whether shortening r creates an apparent split in river, whether s is now too light, and whether h's taller arch needs adjustment. Native-size readability takes priority over making enlarged contours mechanically uniform.
+The curved-foot l is selected. Continue checking whether shortening r creates an apparent split in river, whether s is now too light, and whether h's taller arch needs adjustment. Native-size readability takes priority over making enlarged contours mechanically uniform.
 
 Tool and a systematic capital/figure/punctuation pass remain open. Before a production PR, validate guest-font precedence, controls, selections/inversions, caret erasure, clipping, and native/scaled performance against the then-current master. Equal advances and nonempty masks do not establish all of those behaviors.
