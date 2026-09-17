@@ -1,21 +1,22 @@
 {
   "typeface": "Coppet",
-  "current_candidate": "generated/Coppet-Round6-Right.ttf",
-  "sha256": "7098b3449abe7ca302082b51c3e49d58a99f92fd72a76051148c1b2947b402b8",
-  "version": "0.021",
-  "latest_user_choice": "Try Align i and l but push i right, keeping it aligned at 9 px",
-  "review_context": "i/l native clarity and minimum/Rail/Citizens spacing",
-  "scope": "Aligned T selected; user requested aligned i/l with i moved right. One-logical-pixel move implemented; visual result pending review.",
+  "current_candidate": "generated/Coppet-Round7-Combined.ttf",
+  "sha256": "019f2510b8f3f10776b5341b8a6d7a5f7a48840822220c33c34493ea23560fe5",
+  "version": "0.024",
+  "latest_user_choice": "Both changes look better: aligned R/ampersand and i entry stroke",
+  "review_context": "R middle bar, ampersand upper loop and independently drawn i entry stroke",
+  "scope": "User selected both round-seven changes. Other glyphs and production validation remain pending.",
   "pending": [
     "Review c/r/s and t stem refinement, and h/n/m arches",
-    "Review round-six minimum/Rail/Citizens spacing and i/l clarity",
     "Review capitals, figures and punctuation",
     "Validate GUI interaction, clipping, font precedence and native/scaled performance before a production PR"
   ],
   "round3_user_feedback": "Small T shift is a spacing compromise but softens its stem; larger shift disrupts STREET. R/T still heavy; i in minimum still too far right.",
   "approved_choices": {
     "lowercase_l_shape": "Inter-derived curved foot",
-    "capital_T": "Small crossbar shift with stem aligned to native pixel column 2"
+    "capital_T": "Small crossbar shift with stem aligned to native pixel column 2",
+    "R_and_ampersand": "Round-seven aligned R middle bar and opened/aligned ampersand upper loop",
+    "lowercase_i": "Round-six aligned rightward stem position plus round-seven entry stroke"
   },
   "round4_candidates": [
     "generated/Coppet-Round4-Shifted.ttf",
@@ -27,5 +28,11 @@
     "generated/Coppet-Round5-IL.ttf"
   ],
   "round5_status": "User requested aligned i/l with i moved right, implemented in round six",
-  "round6_status": "Native-validated one-pixel i move right; awaiting review"
+  "round6_status": "User said it looks better",
+  "round7_candidates": [
+    "generated/Coppet-Round7-Sharp.ttf",
+    "generated/Coppet-Round7-Entry.ttf",
+    "generated/Coppet-Round7-Combined.ttf"
+  ],
+  "round7_status": "User prefers both changes at the normal/scaled comparison; Combined selected"
 }

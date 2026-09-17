@@ -1,0 +1,112 @@
+{
+  "variants": [
+    {
+      "variant": "Sharp",
+      "changed_outlines": [
+        "&",
+        "R"
+      ],
+      "changed_guest_glyphs": [
+        "&"
+      ],
+      "changed_retained_glyphs": [
+        "&",
+        "R"
+      ],
+      "all_95_advances_and_baseline_metrics_unchanged": true,
+      "unrelated_glyphs_pixel_identical": true,
+      "R_guest_mask_identical": true,
+      "all_nonspace_guest_glyphs_have_ink": true,
+      "strict_native_hint_checks_passed": true,
+      "font_sha256": "f240e3dbfd06680a175d0a4ca84bb25b832639eb761609d1832422d100871260"
+    },
+    {
+      "variant": "Entry",
+      "changed_outlines": [
+        "i"
+      ],
+      "changed_guest_glyphs": [
+        "i"
+      ],
+      "changed_retained_glyphs": [
+        "i"
+      ],
+      "all_95_advances_and_baseline_metrics_unchanged": true,
+      "unrelated_glyphs_pixel_identical": true,
+      "R_guest_mask_identical": true,
+      "all_nonspace_guest_glyphs_have_ink": true,
+      "strict_native_hint_checks_passed": true,
+      "font_sha256": "adab5505b188cf0d70278f7e661f29558e8eacfd0527b2882979da3921168ea8"
+    },
+    {
+      "variant": "Combined",
+      "changed_outlines": [
+        "&",
+        "R",
+        "i"
+      ],
+      "changed_guest_glyphs": [
+        "&",
+        "i"
+      ],
+      "changed_retained_glyphs": [
+        "&",
+        "R",
+        "i"
+      ],
+      "all_95_advances_and_baseline_metrics_unchanged": true,
+      "unrelated_glyphs_pixel_identical": true,
+      "R_guest_mask_identical": true,
+      "all_nonspace_guest_glyphs_have_ink": true,
+      "strict_native_hint_checks_passed": true,
+      "font_sha256": "019f2510b8f3f10776b5341b8a6d7a5f7a48840822220c33c34493ea23560fe5"
+    }
+  ],
+  "native_coverage_0_to_255": {
+    "before": {
+      "R_middle_bar_row": 114.75,
+      "R_row_below_bar": 63.75,
+      "ampersand_upper_left_side": 117.38,
+      "ampersand_upper_counter": [
+        82.81,
+        60.12
+      ],
+      "ampersand_upper_right_side": 139.44
+    },
+    "after": {
+      "R_middle_bar_row": 178.5,
+      "R_row_below_bar": 0.0,
+      "ampersand_upper_left_side": 205.25,
+      "ampersand_upper_counter": [
+        2.94,
+        3.75
+      ],
+      "ampersand_upper_right_side": 200.0
+    }
+  },
+  "scope": "Optical study only, unchanged renderer; these changes selected, broader glyph review and production validation pending",
+  "capture_sha256": {
+    "round7-sharp/city-100.png": "02d38521c5b97ed2fe645c8c95a558cff3f64020a2518c85f732f18230fd4c0c",
+    "round7-sharp/city-138.png": "27a39a86df4dc93bbaf5c49c2503695a168301cf48f0cd3127349d57febe7285",
+    "round7-sharp/new-city-100.png": "9e3134721c8631aeb84d781c12cd6906cf8c7d754cfcc1acdb54ef29508eda7c",
+    "round7-sharp/new-city-138.png": "a9b5a86133cddf5c21728ad1ea21de64978706da51e3cdf92994217e3ea21d1c",
+    "round7-sharp/samples-100.png": "b30b0b8b195ea064e26b8e0f261515c2915cef2bb1627f808abb0dc1723c1b3b",
+    "round7-sharp/samples-138.png": "2f73fbdcace3d6f751b02a09d958d3e7906e23e1b9c10e286a3e9c9e26a6b6b9",
+    "round7-sharp/samples-400.png": "e58085dbb9b380a33f2c77dfda23a6f18d9a7131e011a028a03ada218d1ba26e",
+    "round7-entry/city-100.png": "c7640b03d68f2d8bfd512a2adea8d296ac749b370d45d5dba9f4fd67238f597a",
+    "round7-entry/city-138.png": "2fc7e30866fd09e1f66010b6c688cfda10634f0cb2122ffbac21287ad98b46be",
+    "round7-entry/new-city-100.png": "9e3134721c8631aeb84d781c12cd6906cf8c7d754cfcc1acdb54ef29508eda7c",
+    "round7-entry/new-city-138.png": "a9b5a86133cddf5c21728ad1ea21de64978706da51e3cdf92994217e3ea21d1c",
+    "round7-entry/samples-100.png": "8a48f30740ebce61566bc5aa3fa5fed0e889ff299bce26c39211b4196e6cb748",
+    "round7-entry/samples-138.png": "236d33b1558fedaa7f53a7e3ef9c5e6eb82c712333cff7670498677bac100ec7",
+    "round7-entry/samples-400.png": "878831e40dcb0d1f0bb05121fdc5f79343502d0029bc03eae3460e9dd31b6745",
+    "round7-combined/city-100.png": "b9fbaa8b7c5be291a6299d6bb08d088db16741abe950dfaf6f851255fa6f07ab",
+    "round7-combined/city-138.png": "b57c12619b74d8dc274850461cf5d407dd7cb9e4fd1b46cb4dad70ba36865434",
+    "round7-combined/new-city-100.png": "9e3134721c8631aeb84d781c12cd6906cf8c7d754cfcc1acdb54ef29508eda7c",
+    "round7-combined/new-city-138.png": "a9b5a86133cddf5c21728ad1ea21de64978706da51e3cdf92994217e3ea21d1c",
+    "round7-combined/samples-100.png": "184df36341a7932ac152235a6c075fdb85894d4e8ae460270051ada379ceaa71",
+    "round7-combined/samples-138.png": "becae363de08e320e1bae9e7de4d6316fed9a6dbd1160cda7b7e69555034614b",
+    "round7-combined/samples-400.png": "525927110b880b0ffa8b2c332fe8c2e37e5d27fab1c5bfda4702aa57f9a86ffa"
+  },
+  "visual_review": "User selected both changes; Combined 0.024 is the new comparison baseline"
+}

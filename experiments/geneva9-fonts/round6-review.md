@@ -13,4 +13,4 @@ The previous extra 9-ppem i hint is removed: the outline itself now occupies the
 - All 95 retained raster mask contents are identical. Only i's retained placement changes: four pixels right in the 4× raster, exactly one logical pixel.
 - Aligned l/T and all other letters are unchanged. Strict native hint execution passes.
 
-Font and screenshot hashes are recorded in `validation-round6.json`. The proof and full-city/New City views use the same fixed-clock replay at 100% and 138%. The requested placement is implemented; its visual result awaits review. GUI compatibility, broader character coverage and native/scaled performance checks remain necessary before production use.
+Font and screenshot hashes are recorded in `validation-round6.json`. The proof and full-city/New City views use the same fixed-clock replay at 100% and 138%. The user said this looked better, then asked about an i entry stroke and R/ampersand clarity; those trials are documented in [round7-review.md](round7-review.md). GUI compatibility, broader character coverage and native/scaled performance checks remain necessary before production use.

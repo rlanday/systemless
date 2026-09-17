@@ -1,0 +1,41 @@
+[
+  {
+    "variant": "Sharp",
+    "version": "0.022",
+    "changed_outlines": [
+      "&",
+      "R"
+    ],
+    "all_advances_unchanged": true,
+    "artwork_source": "Coppet-Round6-Right-unhinted.ttf (OFL Inter derivative)",
+    "R_bar_outline_shift_units": 38,
+    "i_entry_extension_units": 0,
+    "sha256": "f240e3dbfd06680a175d0a4ca84bb25b832639eb761609d1832422d100871260"
+  },
+  {
+    "variant": "Entry",
+    "version": "0.023",
+    "changed_outlines": [
+      "i"
+    ],
+    "all_advances_unchanged": true,
+    "artwork_source": "Coppet-Round6-Right-unhinted.ttf (OFL Inter derivative)",
+    "R_bar_outline_shift_units": 0,
+    "i_entry_extension_units": 89,
+    "sha256": "adab5505b188cf0d70278f7e661f29558e8eacfd0527b2882979da3921168ea8"
+  },
+  {
+    "variant": "Combined",
+    "version": "0.024",
+    "changed_outlines": [
+      "&",
+      "R",
+      "i"
+    ],
+    "all_advances_unchanged": true,
+    "artwork_source": "Coppet-Round6-Right-unhinted.ttf (OFL Inter derivative)",
+    "R_bar_outline_shift_units": 38,
+    "i_entry_extension_units": 89,
+    "sha256": "019f2510b8f3f10776b5341b8a6d7a5f7a48840822220c33c34493ea23560fe5"
+  }
+]
