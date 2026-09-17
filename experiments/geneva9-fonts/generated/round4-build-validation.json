@@ -1,0 +1,38 @@
+[
+  {
+    "variant": "Shifted",
+    "version": "0.017",
+    "changed_outlines": [
+      "R",
+      "T",
+      "i"
+    ],
+    "advances_unchanged": true,
+    "R_Inter_weight": 360,
+    "T_stem_width": 80,
+    "T_crossbar_thickness": 72,
+    "T_stem_center": 275,
+    "T_crossbar_center": 275,
+    "i_shift_from_round2": -50,
+    "i_9ppem_hint": "+32/64 pixel; real points only",
+    "sha256": "45c5e74cc692b316b2bd8693238b250dfe1a5a43eeb366fae0061736c5c125b1"
+  },
+  {
+    "variant": "Aligned",
+    "version": "0.018",
+    "changed_outlines": [
+      "R",
+      "T",
+      "i"
+    ],
+    "advances_unchanged": true,
+    "R_Inter_weight": 360,
+    "T_stem_width": 80,
+    "T_crossbar_thickness": 72,
+    "T_stem_center": 250,
+    "T_crossbar_center": 275,
+    "i_shift_from_round2": -50,
+    "i_9ppem_hint": "+32/64 pixel; real points only",
+    "sha256": "d0e34e36940c0b5fa6d7bbf1507f6c9834b5a2ea0f62be51c59463fc0b4e9776"
+  }
+]

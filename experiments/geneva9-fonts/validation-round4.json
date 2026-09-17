@@ -1,0 +1,62 @@
+{
+  "variants": [
+    {
+      "variant": "Shifted",
+      "changed_outlines": [
+        "R",
+        "T",
+        "i"
+      ],
+      "all_95_advances_and_baseline_metrics_unchanged": true,
+      "all_95_guest_glyphs_identical_including_masks_and_placement": true,
+      "only_R_T_i_retained_rasters_change": true,
+      "other_92_outlines_and_rasters_identical": true,
+      "strict_interpreter_checks_passed": true,
+      "font_sha256": "45c5e74cc692b316b2bd8693238b250dfe1a5a43eeb366fae0061736c5c125b1"
+    },
+    {
+      "variant": "Aligned",
+      "changed_outlines": [
+        "R",
+        "T",
+        "i"
+      ],
+      "all_95_advances_and_baseline_metrics_unchanged": true,
+      "all_95_guest_glyphs_identical_including_masks_and_placement": true,
+      "only_R_T_i_retained_rasters_change": true,
+      "other_92_outlines_and_rasters_identical": true,
+      "strict_interpreter_checks_passed": true,
+      "font_sha256": "d0e34e36940c0b5fa6d7bbf1507f6c9834b5a2ea0f62be51c59463fc0b4e9776"
+    }
+  ],
+  "variants_differ_only_in_T": true,
+  "hint_scope": "Strict Windows audit: guest i unchanged; added hint has no effect at 8/10/36 ppem",
+  "visual_review": "User prefers aligned T stem; i and l still look soft and remain under refinement",
+  "production_validation": "GUI, clipping, guest-font precedence and native/scaled performance pending",
+  "capture_sha256": {
+    "round4-before/city-100.png": "518e6999e669518edfa6b4cd5022fd6ae71935a4f6eddaa72021fc202e23a68e",
+    "round4-before/city-138.png": "f1c39a9a9360dee56bf69dafee3bc1075db03e864a3d304ab013625866ad633a",
+    "round4-before/new-city-100.png": "9e3134721c8631aeb84d781c12cd6906cf8c7d754cfcc1acdb54ef29508eda7c",
+    "round4-before/new-city-138.png": "a9b5a86133cddf5c21728ad1ea21de64978706da51e3cdf92994217e3ea21d1c",
+    "round4-before/samples-100.png": "16bfc82a1c2bb07deeb84e3582a1cc7fa29c1f78ae5b02588a6786671609cd23",
+    "round4-before/samples-138.png": "6c17cd2992ecf1f860052578aa2b4a66546ed6de5f0d218b86d6f6b820099a3f",
+    "round4-before/samples-400.png": "76a2a630efbb63113faa3d8706ba2b6c9bb372047476a6130cf7e1b7bf839528",
+    "round4-shifted/city-100.png": "e55d6942f5f86427c6773ce4c2cc8ce13364647369171235492b60affa2af1d0",
+    "round4-shifted/city-138.png": "314853c25b6619a83fc99a996d673fd290d185e30ecb966e675a167ddddd77c8",
+    "round4-shifted/new-city-100.png": "9e3134721c8631aeb84d781c12cd6906cf8c7d754cfcc1acdb54ef29508eda7c",
+    "round4-shifted/new-city-138.png": "a9b5a86133cddf5c21728ad1ea21de64978706da51e3cdf92994217e3ea21d1c",
+    "round4-shifted/samples-100.png": "1660a5cc0ead60911fdc67f41612fdc7df86b134ee7cfc83b2645306685798c9",
+    "round4-shifted/samples-138.png": "200582a604ec8e023ddba9a276d6495c0a003248924d9d6eeeef127d39e7f1ac",
+    "round4-shifted/samples-400.png": "2004100d525a978e762ac9c0f581ba7d8a6f34494cf3dce78ca9efa121cffd43",
+    "round4-aligned/city-100.png": "be2357d87f14bc8fc28412fdd6d5b6a823f76d28fb2ee78681988546099949a6",
+    "round4-aligned/city-138.png": "a36eb225a0c3ff490886624e36ef687ea96fe9e12f9dc94c58b5b37cdfb1b1af",
+    "round4-aligned/new-city-100.png": "9e3134721c8631aeb84d781c12cd6906cf8c7d754cfcc1acdb54ef29508eda7c",
+    "round4-aligned/new-city-138.png": "a9b5a86133cddf5c21728ad1ea21de64978706da51e3cdf92994217e3ea21d1c",
+    "round4-aligned/samples-100.png": "3c58909324d0e276c1f690eca0cfa58b477209211adc0844e0b1a96af99a4cf4",
+    "round4-aligned/samples-138.png": "b2e3b5e0c929b20fd357b506108522045db29bd2fba35d7907b38d8868575e77",
+    "round4-aligned/samples-400.png": "fcbcf532482c83ff10b9388bef48471d3e02b8021ff328b94b947edba52255e7",
+    "round4-original/samples-100.png": "b16ca5f006b31fa52faed9ef0600b5be4e3d86870df4864cf3faff2b1ef22611",
+    "round4-original/samples-138.png": "48244e0ec5db22cd941447057564fb1e00c126cb8b3121c4d5ee62f5bb5f2f99",
+    "round4-original/samples-400.png": "2fd77ea99228162da26da1607b87718043cb40570966f732d6c9e0a09d407030"
+  }
+}

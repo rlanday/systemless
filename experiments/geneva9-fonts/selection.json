@@ -1,20 +1,31 @@
 {
   "typeface": "Coppet",
-  "current_candidate": "generated/Coppet-Round3-T25.ttf",
-  "sha256": "8a89b93264a6c77beb07addd767a2b394d8c7c6e3849ba74fe3d9108d8405b57",
-  "version": "0.014",
-  "latest_user_choice": "Small T shift",
-  "review_context": "Tool compared with AT, TT and STREET",
-  "scope": "Curved-foot l shape and +0.25 logical-pixel T placement selected. Rail/minimum spacing and P/y/j weight still need adjustment.",
+  "current_candidate": "generated/Coppet-Round6-Right.ttf",
+  "sha256": "7098b3449abe7ca302082b51c3e49d58a99f92fd72a76051148c1b2947b402b8",
+  "version": "0.021",
+  "latest_user_choice": "Try Align i and l but push i right, keeping it aligned at 9 px",
+  "review_context": "i/l native clarity and minimum/Rail/Citizens spacing",
+  "scope": "Aligned T selected; user requested aligned i/l with i moved right. One-logical-pixel move implemented; visual result pending review.",
   "pending": [
     "Review c/r/s and t stem refinement, and h/n/m arches",
-    "Refine round-three P/y/j weight and Rail/minimum spacing based on remaining feedback",
+    "Review round-six minimum/Rail/Citizens spacing and i/l clarity",
     "Review capitals, figures and punctuation",
     "Validate GUI interaction, clipping, font precedence and native/scaled performance before a production PR"
   ],
-  "round3_user_feedback": "Small T shift selected. Other weight/i-l spacing still needs adjustment; specific remaining defects requested.",
+  "round3_user_feedback": "Small T shift is a spacing compromise but softens its stem; larger shift disrupts STREET. R/T still heavy; i in minimum still too far right.",
   "approved_choices": {
     "lowercase_l_shape": "Inter-derived curved foot",
-    "capital_T_translation_font_units": 25
-  }
+    "capital_T": "Small crossbar shift with stem aligned to native pixel column 2"
+  },
+  "round4_candidates": [
+    "generated/Coppet-Round4-Shifted.ttf",
+    "generated/Coppet-Round4-Aligned.ttf"
+  ],
+  "round4_status": "User prefers aligned T; i and l still soft",
+  "round5_candidates": [
+    "generated/Coppet-Round5-L.ttf",
+    "generated/Coppet-Round5-IL.ttf"
+  ],
+  "round5_status": "User requested aligned i/l with i moved right, implemented in round six",
+  "round6_status": "Native-validated one-pixel i move right; awaiting review"
 }

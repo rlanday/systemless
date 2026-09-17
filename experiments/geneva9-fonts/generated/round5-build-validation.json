@@ -1,0 +1,29 @@
+[
+  {
+    "variant": "L",
+    "version": "0.019",
+    "changed_outlines": [
+      "l"
+    ],
+    "advances_unchanged": true,
+    "l_translation": -31,
+    "i_translation": 0,
+    "i_9ppem_hint_64ths": 32,
+    "l_9ppem_hint_64ths": 20,
+    "sha256": "7383919d8f4485f8577decfe8eca580c5c5469fd9defe9ce9cff93b1b6df6a42"
+  },
+  {
+    "variant": "IL",
+    "version": "0.020",
+    "changed_outlines": [
+      "i",
+      "l"
+    ],
+    "advances_unchanged": true,
+    "l_translation": -31,
+    "i_translation": -50,
+    "i_9ppem_hint_64ths": 64,
+    "l_9ppem_hint_64ths": 20,
+    "sha256": "24e5e8cd1286d4f3401e813c3c35c0d5a316488990f2b7e3fe56e098d851ccbd"
+  }
+]

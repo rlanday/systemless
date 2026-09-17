@@ -1,0 +1,60 @@
+{
+  "variants": [
+    {
+      "variant": "L",
+      "changed_outlines": [
+        "l"
+      ],
+      "all_95_advances_and_baseline_metrics_unchanged": true,
+      "all_95_guest_glyphs_identical_including_masks_and_placement": true,
+      "only_selected_i_l_retained_rasters_change": true,
+      "guest_i_dot_and_l_foot_preserved": true,
+      "accepted_T_unchanged": true,
+      "strict_interpreter_checks_passed": true,
+      "font_sha256": "7383919d8f4485f8577decfe8eca580c5c5469fd9defe9ce9cff93b1b6df6a42"
+    },
+    {
+      "variant": "IL",
+      "changed_outlines": [
+        "i",
+        "l"
+      ],
+      "all_95_advances_and_baseline_metrics_unchanged": true,
+      "all_95_guest_glyphs_identical_including_masks_and_placement": true,
+      "only_selected_i_l_retained_rasters_change": true,
+      "guest_i_dot_and_l_foot_preserved": true,
+      "accepted_T_unchanged": true,
+      "strict_interpreter_checks_passed": true,
+      "font_sha256": "24e5e8cd1286d4f3401e813c3c35c0d5a316488990f2b7e3fe56e098d851ccbd"
+    }
+  ],
+  "variants_differ_only_in_retained_i": true,
+  "visual_review": "User requested IL with i moved right while retaining native alignment; implemented in round six",
+  "production_validation": "GUI, clipping, guest-font precedence and native/scaled performance pending",
+  "capture_sha256": {
+    "round5-before/city-100.png": "be2357d87f14bc8fc28412fdd6d5b6a823f76d28fb2ee78681988546099949a6",
+    "round5-before/city-138.png": "a36eb225a0c3ff490886624e36ef687ea96fe9e12f9dc94c58b5b37cdfb1b1af",
+    "round5-before/new-city-100.png": "9e3134721c8631aeb84d781c12cd6906cf8c7d754cfcc1acdb54ef29508eda7c",
+    "round5-before/new-city-138.png": "a9b5a86133cddf5c21728ad1ea21de64978706da51e3cdf92994217e3ea21d1c",
+    "round5-before/samples-100.png": "3c58909324d0e276c1f690eca0cfa58b477209211adc0844e0b1a96af99a4cf4",
+    "round5-before/samples-138.png": "b2e3b5e0c929b20fd357b506108522045db29bd2fba35d7907b38d8868575e77",
+    "round5-before/samples-400.png": "fcbcf532482c83ff10b9388bef48471d3e02b8021ff328b94b947edba52255e7",
+    "round5-l/city-100.png": "07b2f217c4957911bfe2031b61cb662c2fd5568b0c26cd5be12d635fa6e23133",
+    "round5-l/city-138.png": "a1bf81dba76530c1718e07cb1018191bf93a665769dc222231f755e9807f6b54",
+    "round5-l/new-city-100.png": "9e3134721c8631aeb84d781c12cd6906cf8c7d754cfcc1acdb54ef29508eda7c",
+    "round5-l/new-city-138.png": "a9b5a86133cddf5c21728ad1ea21de64978706da51e3cdf92994217e3ea21d1c",
+    "round5-l/samples-100.png": "84926f4b6e009843d660d813d477bef1ed5f6ac244c86e8bede701b268fb8175",
+    "round5-l/samples-138.png": "b7e0a02f4221b4f70e51e2aadffc0cc7ff604d93803e7e1e687ca0ac6ea1a791",
+    "round5-l/samples-400.png": "1339d10066429dc461f762a737871c28d66bf3d0f9147c9ad915532930951dbc",
+    "round5-il/city-100.png": "a88911d7be6e4d5d160db1d323714f3f9fa5969a7e1778f12dfae84538bb319f",
+    "round5-il/city-138.png": "ba928d58b0561309f46f533abc43c91050398d3f31ec2cc0abfa0898fc842afc",
+    "round5-il/new-city-100.png": "9e3134721c8631aeb84d781c12cd6906cf8c7d754cfcc1acdb54ef29508eda7c",
+    "round5-il/new-city-138.png": "a9b5a86133cddf5c21728ad1ea21de64978706da51e3cdf92994217e3ea21d1c",
+    "round5-il/samples-100.png": "e3349fb23bc2f014a0cb2f41c25210aa367acf7a1a8153611723ba526b2b0256",
+    "round5-il/samples-138.png": "cfb3f20518b19d109fb982bd0a182e9aeaf19ad2036cecbf01b82cc568c1383e",
+    "round5-il/samples-400.png": "b30b84d346eb019b4ddf36359c40130f1c9def9e41f4a912d3f9dc6e5a1437c7",
+    "round5-original/samples-100.png": "b16ca5f006b31fa52faed9ef0600b5be4e3d86870df4864cf3faff2b1ef22611",
+    "round5-original/samples-138.png": "48244e0ec5db22cd941447057564fb1e00c126cb8b3121c4d5ee62f5bb5f2f99",
+    "round5-original/samples-400.png": "2fd77ea99228162da26da1607b87718043cb40570966f732d6c9e0a09d407030"
+  }
+}

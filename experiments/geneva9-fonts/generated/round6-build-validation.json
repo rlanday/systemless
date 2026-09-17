@@ -1,0 +1,8 @@
+{
+  "version": "0.021",
+  "source": "Coppet-Round5-IL-unhinted.ttf",
+  "change": "i outline +100 units / one logical pixel right; aligned l and T unchanged",
+  "i_9ppem_extra_hint": "Removed; outline now already matches accepted guest position",
+  "l_9ppem_hint_64ths": 20,
+  "sha256": "7098b3449abe7ca302082b51c3e49d58a99f92fd72a76051148c1b2947b402b8"
+}
