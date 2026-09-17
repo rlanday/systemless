@@ -1,0 +1,48 @@
+[
+  {
+    "variant": "Plain",
+    "version": "0.011",
+    "changed_outlines": [
+      "uni0063",
+      "uni006A",
+      "uni006C",
+      "uni0072",
+      "uni0073",
+      "uni0074"
+    ],
+    "advances_unchanged": true,
+    "Demand_and_ampersand_unchanged": true,
+    "parameters": {
+      "narrow_stem": 72,
+      "plain_l_left": 25,
+      "r_left": 20,
+      "r_width": 340,
+      "c_right": 450,
+      "s_weight": 360
+    },
+    "sha256": "de34c00f1356d1447cbf862c80ca8f81ae0572fb2767c3bf5c7d1ba0d8c95b9e"
+  },
+  {
+    "variant": "Foot",
+    "version": "0.012",
+    "changed_outlines": [
+      "uni0063",
+      "uni006A",
+      "uni006C",
+      "uni0072",
+      "uni0073",
+      "uni0074"
+    ],
+    "advances_unchanged": true,
+    "Demand_and_ampersand_unchanged": true,
+    "parameters": {
+      "narrow_stem": 72,
+      "plain_l_left": 25,
+      "r_left": 20,
+      "r_width": 340,
+      "c_right": 450,
+      "s_weight": 360
+    },
+    "sha256": "c4820cb1c64555075ad2cfa91abe761173f4dc3f3b5894220d6fbfbd4598b5e9"
+  }
+]

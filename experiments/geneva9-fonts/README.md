@@ -34,8 +34,14 @@ Native Windows Skrifa/zeno checks compare each ASCII glyph at the 9-pixel monoch
 
 ## Spacing and stroke weight refinement
 
-The current candidate is `generated/Coppet-Refined.ttf`, version 0.010. Rebuild it with `python refine-spacing.py` followed by `python refine-stems.py` after the t revision. See [spacing-weight.md](spacing-weight.md) for the diagnosis, optical changes, native-size placement checks, and remaining review items. Intermediate fonts remain comparison inputs; none is a production default.
+The first refinement is `generated/Coppet-Refined.ttf`, version 0.010. Rebuild it with `python refine-spacing.py` followed by `python refine-stems.py` after the t revision. See [spacing-weight.md](spacing-weight.md) for the diagnosis, optical changes, native-size placement checks, and remaining review items. Intermediate fonts remain comparison inputs; none is a production default.
 
 The user called the first spacing/stem revision a big improvement, while reporting a narrow/light c and blurry i/l at native size. Version 0.010 addresses those reports and still needs visual review. A previous fractional-position trial produced empty one-bit i/l masks; it was rejected during compatibility validation. All non-space ASCII masks must contain ink before a candidate is considered usable.
 
 `validation-name.json` verifies that adopting the final name Coppet changed no outline, metric, mapping or hinting tables in the six comparison font files. The existing native rendering checks therefore apply to the renamed fonts.
+
+## Second optical review
+
+The next candidates are `generated/Coppet-Round2-Plain.ttf` (0.011) and `generated/Coppet-Round2-Foot.ttf` (0.012). Run `python refine-round2.py` after the previous steps. They preserve the accepted Demand/ampersand treatment, adjust c/j/l/r/s/t, and differ from each other only in lowercase l. Neither l variant has been selected by the user. See [round2-review.md](round2-review.md) for shared design parameters, spacing tradeoffs, the remaining Tool pair, and native validation.
+
+`render-round2.rs` produces the current proof sheet and deterministic SC2K city/dialog screenshots through the comparison branch's Windows renderer. `verify-round2.py CAPTURE_ROOT` verifies the resulting glyph audits and records hashes in `validation-round2.json`. Original Geneva remains a local reference only. The current approach continues to modify Inter outlines; a METAFONT redesign is deferred.

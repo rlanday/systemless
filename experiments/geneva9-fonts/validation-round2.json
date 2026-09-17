@@ -1,0 +1,100 @@
+{
+  "variants": [
+    {
+      "variant": "Plain",
+      "font_sha256": "de34c00f1356d1447cbf862c80ca8f81ae0572fb2767c3bf5c7d1ba0d8c95b9e",
+      "changed_outlines": [
+        "c",
+        "j",
+        "l",
+        "r",
+        "s",
+        "t"
+      ],
+      "changed_rasters": {
+        "guest": [
+          "c",
+          "l",
+          "r"
+        ],
+        "retained": [
+          "c",
+          "j",
+          "l",
+          "r",
+          "s",
+          "t"
+        ]
+      },
+      "other_89_outlines_and_rasters_identical": true,
+      "all_95_advances_and_baseline_font_metrics_unchanged": true,
+      "all_94_nonspace_glyphs_have_ink_in_both_targets": true,
+      "i_and_j_dot_pixels_identical_in_both_targets": true,
+      "accepted_i_guest_bitmap_unchanged": true,
+      "Demand_and_ampersand_unchanged": true
+    },
+    {
+      "variant": "Foot",
+      "font_sha256": "c4820cb1c64555075ad2cfa91abe761173f4dc3f3b5894220d6fbfbd4598b5e9",
+      "changed_outlines": [
+        "c",
+        "j",
+        "l",
+        "r",
+        "s",
+        "t"
+      ],
+      "changed_rasters": {
+        "guest": [
+          "c",
+          "l",
+          "r"
+        ],
+        "retained": [
+          "c",
+          "j",
+          "l",
+          "r",
+          "s",
+          "t"
+        ]
+      },
+      "other_89_outlines_and_rasters_identical": true,
+      "all_95_advances_and_baseline_font_metrics_unchanged": true,
+      "all_94_nonspace_glyphs_have_ink_in_both_targets": true,
+      "i_and_j_dot_pixels_identical_in_both_targets": true,
+      "accepted_i_guest_bitmap_unchanged": true,
+      "Demand_and_ampersand_unchanged": true
+    }
+  ],
+  "variants_differ_only_in_lowercase_l": true,
+  "native_tests": "Windows; Skrifa 0.43.2 / zeno; same frozen Systemless library for all cases",
+  "visual_review": "Pending; Tool T-o pair remains unchanged, compare in actual Geneva 9 bold style",
+  "production_validation": "Interaction, clipping, guest-font precedence and native/scaled performance pending",
+  "capture_sha256": {
+    "round2-before/city-100.png": "b3c519aae9ff5d2a967d8b948b349e9d9322bade01dbb67622d20bea9b5e5c02",
+    "round2-before/city-138.png": "65b6bd76ea7d487281b878d9cf56d735551f8475c8d45190ad35fbbeac573189",
+    "round2-before/new-city-100.png": "9e3134721c8631aeb84d781c12cd6906cf8c7d754cfcc1acdb54ef29508eda7c",
+    "round2-before/new-city-138.png": "a9b5a86133cddf5c21728ad1ea21de64978706da51e3cdf92994217e3ea21d1c",
+    "round2-before/samples-100.png": "a3fdc96efc5f3fddd35fff24d245fdc224f1c50262461c29d4f7bfbd2330138a",
+    "round2-before/samples-138.png": "5e8f313a69dd835af9b7d7d0f1b06c6efe32b2d3af1a10c3cfcfc11fc2f76082",
+    "round2-before/samples-400.png": "43316db627322c325b1fd65981dec38f6d94056e87275e87c85d61e687646d45",
+    "round2-plain/city-100.png": "3cd55ff05836c0ad868c223de0ff9841860ea9f9e89f1fde47d8b86e9a500773",
+    "round2-plain/city-138.png": "ef8706e31afd4c50ba5565e1a03b50acf3dd67d1f3c342fdd581fc60b2400c9d",
+    "round2-plain/new-city-100.png": "9e3134721c8631aeb84d781c12cd6906cf8c7d754cfcc1acdb54ef29508eda7c",
+    "round2-plain/new-city-138.png": "a9b5a86133cddf5c21728ad1ea21de64978706da51e3cdf92994217e3ea21d1c",
+    "round2-plain/samples-100.png": "b28df95ac3e684e211110b4dac9af2c38cb4e0f396da4bc65691b8c503270bad",
+    "round2-plain/samples-138.png": "52ec5b1b3653bbd96f33fae993617b566756fada429d9413746ea73f1349e168",
+    "round2-plain/samples-400.png": "2a76e7ca6c9aefc9acf3f5f4b156096200cad310b37496bb033bfa8a9f23d795",
+    "round2-foot/city-100.png": "521f014227210315a98751589c3d64889c66a63bf1cce57859cf5008387b4aac",
+    "round2-foot/city-138.png": "fc6e64dd3d2d600220928b9eb8d4f7a838c15759530b237fe1afd44c372f9e5e",
+    "round2-foot/new-city-100.png": "9e3134721c8631aeb84d781c12cd6906cf8c7d754cfcc1acdb54ef29508eda7c",
+    "round2-foot/new-city-138.png": "a9b5a86133cddf5c21728ad1ea21de64978706da51e3cdf92994217e3ea21d1c",
+    "round2-foot/samples-100.png": "f201a68da175e010f7d5ac99a6ec0e7d44f0c59e656c405b531e3b90c1ffefef",
+    "round2-foot/samples-138.png": "48e915dab912fa733a7d5e0335c1dd1acecb5cbf44e9e967445d46ea7c80838f",
+    "round2-foot/samples-400.png": "10324480d5b4d1a92fb62914c426d33ec2c6a2a8ad80860b565574e7f8c57935",
+    "round2-original/samples-100.png": "6fc0500792995a27812e427dfda2e0d99a17f91a63354492a658dea79fb1f9f4",
+    "round2-original/samples-138.png": "0c4b084764802ef51d2a250c3a823d981559c9656232ad943c75b539c8aca558",
+    "round2-original/samples-400.png": "0b998e9dfcf8728d888b40962631cb76a14c886c15d7787bfbf67d2d09413d88"
+  }
+}

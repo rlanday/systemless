@@ -1,5 +1,7 @@
 # Coppet: headline spacing and stroke weight
 
+This report describes version 0.010. The subsequent user feedback and 0.011/0.012 comparison are documented in [round2-review.md](round2-review.md); the earlier fonts remain reproducible comparison inputs.
+
 The initial fitted Inter study used the historical substitute's per-glyph ink bounds. Matching advance widths preserved text layout, but those independent transformations did not preserve a consistent typeface weight or balance the visible space between letters.
 
 The SC2K resource and native DrawString trace both contain exactly `Citizens Demand Road&Rail`. There is no space inside Demand or around the ampersand. Its 25 ASCII bytes are drawn in a single DrawString call. The reported splits after both i characters and after m were visual gaps inside the unchanged advance cells.
