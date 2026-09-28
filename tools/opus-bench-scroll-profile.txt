@@ -1,0 +1,60 @@
+samples 2688
+-- inclusive
+ 97.6% <systemless::memory::presentation::text_bench::scroll_profile_loop::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+ 97.6% <std::sys::thread::windows::Thread>::new::thread_start
+ 97.6% <std::thread::lifecycle::spawn_unchecked<test::run_test::{closure#1}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+ 97.6% test::run_test::{closure#0}
+ 97.6% systemless::memory::presentation::text_bench::scroll_profile_loop
+ 97.6% test::__rust_begin_short_backtrace::<core::result::Result<(), alloc::string::String>, fn() -> core::result::Result<(), alloc::string::String>>
+ 97.6% std::sys::backtrace::__rust_begin_short_backtrace::<test::run_test::{closure#1}, ()>
+ 96.7% <systemless::memory::bus::MacMemoryBus>::copy_detail_spans
+ 96.7% <systemless::copy_bits::RowCopy>::execute::<systemless::memory::bus::MacMemoryBus>
+ 96.7% <systemless::memory::bus::MacMemoryBus as systemless::copy_bits::CopyBitsMemory>::copy_rows_with_detail
+ 53.7% <systemless::memory::presentation::Presentation>::paste_copied_row
+ 24.9% core::ptr::drop_glue::<systemless::memory::presentation::IndexedColor>
+  3.8% <systemless::memory::presentation::Presentation>::clear_text_cell
+  2.4% <std::sync::mpmc::list::Channel<test::event::CompletedTest>>::recv::{closure#1}
+  2.4% test::test_main_static
+  2.4% .l_start
+  2.4% std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  2.4% std::rt::lang_start::<()>::{closure#0}
+  2.4% test::console::run_tests_console
+  2.4% <std::sync::mpmc::list::Channel<test::event::CompletedTest>>::recv
+  2.4% main
+  2.4% __tmainCRTStartup
+  2.4% std::rt::lang_start_internal
+  1.8% <systemless::memory::presentation::IndexedColor>::rgb
+  1.2% <systemless::memory::presentation::IndexedColor>::map::<<systemless::memory::presentation::Presentation>::capture_copied_detail<core::iter::adapters::
+  1.0% core::ptr::drop_glue::<systemless::memory::bus::MacMemoryBus>
+  0.9% core::ptr::drop_glue::<core::option::Option<systemless::memory::presentation::Presentation>>
+  0.9% <alloc::rc::Rc<core::cell::RefCell<core::option::Option<systemless::memory::presentation::Presentation>>>>::drop_slow
+  0.9% core::ptr::drop_glue::<alloc::vec::Vec<alloc::vec::Vec<(u8, systemless::memory::presentation::Ink)>>>
+  0.9% core::ptr::drop_glue::<systemless::memory::presentation::samples::DetailSamples>
+  0.8% <systemless::memory::presentation::IndexedColor as core::clone::Clone>::clone
+  0.7% <systemless::memory::presentation::samples::DetailSamples>::ensure_with_ink
+  0.4% core::ptr::drop_glue::<alloc::vec::Vec<(u8, systemless::memory::presentation::Ink)>>
+  0.0% memmove
+  0.0% <systemless::memory::presentation::samples::DetailSamples>::release
+  0.0% <systemless::memory::presentation::Presentation>::screen_row_span
+  0.0% memcpy
+  0.0% core::ptr::drop_glue::<systemless::process_context::ClassicHeapAllocatorState>
+  0.0% <alloc::rc::Rc<core::cell::RefCell<systemless::process_context::ClassicHeapAllocatorState>>>::drop_slow
+  0.0% <alloc::collections::btree::map::IntoIter<u32, u64>>::dying_next
+-- self
+ 35.5% <systemless::memory::bus::MacMemoryBus>::copy_detail_spans
+ 27.3% <systemless::memory::presentation::Presentation>::paste_copied_row
+ 24.9% core::ptr::drop_glue::<systemless::memory::presentation::IndexedColor>
+  2.9% <0x7ffc2d060000>
+  2.6% <systemless::memory::presentation::Presentation>::clear_text_cell
+  2.0% <0x7ffc2b430000>
+  1.8% <systemless::memory::presentation::IndexedColor>::rgb
+  1.2% <systemless::memory::presentation::IndexedColor>::map::<<systemless::memory::presentation::Presentation>::capture_copied_detail<core::iter::adapters::
+  0.8% <systemless::memory::presentation::IndexedColor as core::clone::Clone>::clone
+  0.7% <systemless::memory::presentation::samples::DetailSamples>::ensure_with_ink
+  0.1% core::ptr::drop_glue::<alloc::vec::Vec<(u8, systemless::memory::presentation::Ink)>>
+  0.0% memmove
+  0.0% <systemless::memory::presentation::samples::DetailSamples>::release
+  0.0% <systemless::memory::presentation::Presentation>::screen_row_span
+  0.0% memcpy
+  0.0% core::ptr::drop_glue::<systemless::process_context::ClassicHeapAllocatorState>
+  0.0% <alloc::collections::btree::map::IntoIter<u32, u64>>::dying_next

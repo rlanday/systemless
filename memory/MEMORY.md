@@ -1,0 +1,3 @@
+- [Commit authorship for CLA](commit-authorship-cla.md) — PR commits must be authored by Ryan, not Claude; how to fix and push
+- [Validation chain script pitfalls](validation-chain-scripts.md) — never wait on bare "failed"; bracket-trick pgrep; one build at a time; per-tree desktop target dirs + hash check
+- [Perf PR expectations](perf-pr-expectations.md) — explain before/after work & complexity; classic-Mac parity for all text ops, not just the measured one
