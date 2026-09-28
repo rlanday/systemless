@@ -1,0 +1,51 @@
+# Proposed EV Override route; verify intermediate screenshots on current master.
+# Timestamps are simulated frontend ticks. Mouse coordinates are vertical,horizontal.
+# Dismiss registration, create a fresh pilot, and accept its name.
+600 mousedown 321 490
+602 mouseup 321 490
+1200 mousedown 330 281
+1220 mouseup 330 281
+1320 press 0 83
+1322 press 0 121
+1324 press 0 115
+1326 press 0 116
+1328 press 0 101
+1330 press 0 109
+1332 press 0 108
+1334 press 0 101
+1336 press 0 115
+1338 press 0 115
+1340 press 0 32
+1342 press 0 84
+1344 press 0 101
+1346 press 0 115
+1348 press 0 116
+1380 press 0x24 13
+# Accept default ship name. The old v330,h530 click missed this dialog's OK.
+1560 press 0x24 13
+# Checkpoint1720 should show the main menu after ship naming.
+1760 mousedown 330 530
+1780 mouseup 330 530
+# Initial Enter is during the incoming-login animation; current master still
+# shows its story text at tick2800, so dismiss that screen explicitly afterward.
+1940 press 0x24 13
+# Hold Return across guest frames so GetKeys polling can observe it. A same-tick
+# press releases the key before the guest runs and only exercises queued events.
+3000 keydown 0x24 13
+3060 keyup 0x24 13
+# Checkpoint3500 should show flight; verify visually before claiming coverage.
+3800 keydown 0x7e 30
+3880 keydown 0x7c 29
+3920 keyup 0x7c 29
+3980 keyup 0x7e 30
+# Checkpoint4500 should show flight after controls.
+
+# Extended active flight, steering/thrust and firing; inspect final scene.
+5200 keydown 0x7e 30
+5280 keydown 0x7b 28
+5320 keyup 0x7b 28
+5380 keyup 0x7e 30
+5500 keydown 0x31 32
+5560 keyup 0x31 32
+6800 keydown 0x7e 30
+6920 keyup 0x7e 30
