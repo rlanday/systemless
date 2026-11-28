@@ -52,6 +52,9 @@ pub(crate) fn ppc_guest_resource_refnum(memory: &mut PpcSectionMem, refnum: i16)
 }
 
 pub(crate) fn ppc_internal_resource_refnum(memory: &mut PpcSectionMem, refnum: i16) -> i16 {
+    if refnum == 0 {
+        return memory.read_u16_be(crate::memory::globals::addr::SYS_MAP).unwrap_or(0) as i16;
+    }
     let app_ref = memory
         .read_u16_be(crate::memory::globals::addr::CUR_APREF_NUM)
         .unwrap_or(0) as i16;

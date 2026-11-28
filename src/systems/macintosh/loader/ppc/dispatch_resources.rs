@@ -464,6 +464,11 @@ pub(super) fn dispatch_resource_import(
         }
         PpcImportDispatcherTarget::CloseResFile => {
             let guest_refnum = cpu.gpr[3] as u16 as i16;
+            let system_ref = memory.read_u16_be(crate::memory::globals::addr::SYS_MAP).unwrap_or(0) as i16;
+            if system_ref != 0 && (guest_refnum == 0 || guest_refnum == system_ref) {
+                *last_resource_error = PPC_NO_ERR;
+                return Some(PpcImportAction::ReturnPreserve);
+            }
             ppc_close_res_file(
                 cpu,
                 process_memory_manager,

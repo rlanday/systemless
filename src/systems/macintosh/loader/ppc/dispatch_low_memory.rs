@@ -243,10 +243,8 @@ pub(super) fn dispatch_low_memory_import(
             Some(PpcImportAction::ReturnPreserve)
         }
         PpcImportDispatcherTarget::LMGetSysMap => {
-            // LowMem.h: LMGetSysMap returns the signed reference number of
-            // the System file's resource map. The HLE resource chain uses
-            // refnum 0 as its system/application fallback map.
-            Some(PpcImportAction::Return(ppc_i16_result(0)))
+            let refnum = memory.read_u16_be(crate::memory::globals::addr::SYS_MAP).unwrap_or(0);
+            Some(PpcImportAction::Return(ppc_i16_result(refnum as i16)))
         }
         PpcImportDispatcherTarget::LMGetBootDrive => {
             // LowMem.h: LMGetBootDrive returns the SInt16 BootDrive word at

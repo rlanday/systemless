@@ -7642,12 +7642,13 @@ impl super::TrapDispatcher {
                     );
                 }
 
-                if refnum != 0 && self.close_resource_file_refnum(bus, refnum) {
+                let system = refnum == 0 || refnum == bus.read_word(crate::memory::globals::addr::SYS_MAP);
+                if !system && self.close_resource_file_refnum(bus, refnum) {
                     self.open_files.remove(&refnum);
                     self.file_positions.remove(&refnum);
                     self.write_refnums.remove(&refnum);
                     bus.write_word(0x0A60, 0); // noErr
-                } else if refnum == 0 {
+                } else if system {
                     // Closing system resource file: close all others first
                     // For now, just reset current to 0
                     self.set_current_resource_refnum(bus, 0);
@@ -7689,7 +7690,7 @@ impl super::TrapDispatcher {
                     // IM:I I-116: refNum 0 is the System file. Its HLE map
                     // shares key 0 with the application, so remember which
                     // one the guest asked for.
-                    if refnum == 0 && cur_apref_num != 0 {
+                    if (refnum == 0 || refnum == bus.read_word(crate::memory::globals::addr::SYS_MAP)) && cur_apref_num != 0 {
                         self.with_resource_manager_mut(|resource_manager| {
                             resource_manager.system_map_selected = true;
                         });

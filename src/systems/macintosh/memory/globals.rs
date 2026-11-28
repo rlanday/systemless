@@ -41,6 +41,7 @@ pub mod addr {
     pub const SCR_V_RES: u32 = 0x0102; // Screen vertical pixels per inch (word)
     pub const SCR_H_RES: u32 = 0x0104; // Screen horizontal pixels per inch (word)
     pub const THE_ZONE: u32 = 0x0118; // Current heap zone (ptr)
+    pub const SYS_MAP: u32 = 0x0A58; // System resource-file FCB reference
     pub const TOP_MAP_HNDL: u32 = 0x0A50; // Resource map list head (handle)
     pub const FSCALE_DISABLE: u32 = 0x0A63; // Font scaling disabled (byte)
     pub const LAST_SP_EXTRA: u32 = 0x0B4C; // Most recent font manager space extra (long)

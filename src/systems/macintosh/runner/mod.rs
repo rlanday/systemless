@@ -266,7 +266,8 @@ const APP_HIGH_MEMORY_RESERVE: u32 = 2 * 1024 * 1024;
 const CLASSIC_24_BIT_ADDRESS_SPACE_END: u32 = 0x0100_0000;
 const APPLICATION_RESOURCE_REFNUM: u16 = 2;
 const HFS_FCB_SIZE: u16 = 94;
-const HFS_FCB_BUFFER_SIZE: u16 = 2 + HFS_FCB_SIZE;
+const SYSTEM_RESOURCE_REFNUM: u16 = APPLICATION_RESOURCE_REFNUM + HFS_FCB_SIZE;
+const HFS_FCB_BUFFER_SIZE: u16 = SYSTEM_RESOURCE_REFNUM + HFS_FCB_SIZE;
 const HFS_VCB_SIZE: u32 = 178;
 const PPC_SOUND_COMPLETION_CALLBACK_MAX_CYCLES: u64 = 250_000;
 // Doubleback routines may transform and refill a whole buffer, unlike a
@@ -4189,6 +4190,35 @@ impl FixtureRunner {
         self.bus
             .fill_bytes(fcb_buffer, HFS_FCB_BUFFER_SIZE as u32, 0);
         self.bus.write_word(fcb_buffer, HFS_FCB_BUFFER_SIZE);
+        // SysMap is an offset into the same FCB buffer as CurApRefNum.
+        // The System file stays on the boot volume when the application
+        // launches from another disk.
+        let system_path = "System Folder/System";
+        self.dispatcher.ensure_vfs_file_metadata(system_path);
+        let system_metadata = self.dispatcher.vfs_metadata[system_path];
+        let system_fcb = fcb_buffer + u32::from(SYSTEM_RESOURCE_REFNUM);
+        self.bus.write_long(system_fcb, system_metadata.file_id);
+        self.bus.write_word(system_fcb + 4, 0x0200);
+        self.bus.write_long(system_fcb + 20, vcb_ptr);
+        self.bus.write_long(system_fcb + 50, u32::from_be_bytes(*b"zsys"));
+        self.bus.write_long(system_fcb + 58, system_metadata.parent_dir_id);
+        self.write_fixed_pstring(system_fcb + 62, "System", 31);
+        self.bus.write_word(addr::SYS_MAP, SYSTEM_RESOURCE_REFNUM);
+        self.dispatcher.register_empty_resource_file(SYSTEM_RESOURCE_REFNUM);
+        self.dispatcher.set_resource_file_name(SYSTEM_RESOURCE_REFNUM, system_path);
+        self.dispatcher.with_resource_manager_mut(|manager| {
+            if let Some(resources) = manager.resources.as_mut() {
+                resources.search_order.retain(|&reference| reference != SYSTEM_RESOURCE_REFNUM);
+                resources.search_order.insert(0, SYSTEM_RESOURCE_REFNUM);
+            }
+            if !manager.resource_files.iter().any(|file| file.ref_num == SYSTEM_RESOURCE_REFNUM as i16) {
+                manager.resource_files.push(crate::process_context::ProcessResourceFileRecord {
+                    ref_num: SYSTEM_RESOURCE_REFNUM as i16,
+                    path: system_path.into(),
+                    writable: Some(false),
+                });
+            }
+        });
         let fcb = fcb_buffer + APPLICATION_RESOURCE_REFNUM as u32;
         self.bus.write_long(fcb, metadata.file_id);
         self.bus.write_word(fcb + 4, 0x0200); // fcbFlags bit 9: resource fork
@@ -5191,6 +5221,7 @@ impl FixtureRunner {
             .shared_event_queue()
             .merge(detached_events);
         ppc_app.attach_unconverted_process_services(&mut self.process_context);
+        self.seed_current_application_file_manager_state();
         if let Some(partition_size) = self.application_partition_size.or_else(|| {
             ppc_app
                 .launch_size_resource()

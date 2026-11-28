@@ -306,20 +306,21 @@ fn hle_import_runner_handles_signed_res_error() {
 }
 
 #[test]
-fn hle_import_runner_lm_get_sys_map_returns_the_hle_fallback_refnum() {
+fn hle_import_runner_lm_get_sys_map_reads_the_system_file_refnum() {
     assert_eq!(
         dispatcher_target_for_import("InterfaceLib", "LMGetSysMap"),
         PpcImportDispatcherTarget::LMGetSysMap
     );
     let pef = synthetic_pef_with_import(b"LMGetSysMap");
     let mut loaded = load_pef_application(&pef).unwrap();
+    loaded.memory.write_u16_be(crate::memory::globals::addr::SYS_MAP, 96).unwrap();
     loaded.cpu.gpr[3] = 0xdead_beef;
 
     let probe = loaded.run_with_hle_imports(64);
 
     assert_eq!(probe.handled_import_count, 1);
     assert_eq!(probe.unsupported_import_index, None);
-    assert_eq!(loaded.cpu.gpr[3], 0);
+    assert_eq!(loaded.cpu.gpr[3], 96);
 }
 
 #[test]

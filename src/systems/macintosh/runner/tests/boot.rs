@@ -152,6 +152,33 @@ fn init_app_seeds_current_application_fcb_low_memory_state() {
         HFS_FCB_BUFFER_SIZE,
         "FCB buffer length should include the leading length word"
     );
+    let system_ref = runner.bus.read_word(addr::SYS_MAP);
+    assert_ne!(system_ref, APPLICATION_RESOURCE_REFNUM);
+    assert!(system_ref >= 2 && system_ref + HFS_FCB_SIZE <= HFS_FCB_BUFFER_SIZE);
+    let system_fcb = fcb_buffer + u32::from(system_ref);
+    assert_ne!(runner.bus.read_long(system_fcb), 0);
+    let system_vcb = runner.bus.read_long(system_fcb + 20);
+    assert_eq!(runner.bus.read_word(system_vcb + 78) as i16, crate::trap::dispatch::BOOT_VOLUME_REF_NUM);
+    assert_eq!(crate::trap::TrapDispatcher::internal_resource_refnum(&runner.bus, 0), system_ref);
+    // UseResFile accepts both zero and the published System refnum. CurResFile
+    // returns the real access path for either call.
+    let stack = runner.bus.alloc(8);
+    for guest_ref in [0, system_ref] {
+        runner.m68k.cpu.write_reg(Register::A7, stack);
+        runner.bus.write_word(stack, guest_ref);
+        runner.dispatcher.dispatch(0xA998, &mut runner.m68k.cpu, &mut runner.bus).unwrap();
+        assert_eq!(runner.bus.read_word(0x0A60), 0);
+        runner.m68k.cpu.write_reg(Register::A7, stack);
+        runner.dispatcher.dispatch(0xA994, &mut runner.m68k.cpu, &mut runner.bus).unwrap();
+        assert_eq!(runner.bus.read_word(stack), system_ref);
+    }
+    // Opening another data fork grows the array and preserves the System
+    // access path, including its volume pointer.
+    let additional = runner.dispatcher.allocate_data_file_fcb(&mut runner.bus, "Other", false).unwrap();
+    assert_ne!(additional, system_ref);
+    let grown = runner.bus.read_long(addr::FCB_S_PTR);
+    assert_eq!(runner.bus.read_long(grown + u32::from(system_ref) + 20), system_vcb);
+    let fcb_buffer = grown;
     let fcb = fcb_buffer + APPLICATION_RESOURCE_REFNUM as u32;
     assert_eq!(
         runner.bus.read_word(fcb + 4),

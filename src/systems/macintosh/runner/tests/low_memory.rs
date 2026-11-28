@@ -563,6 +563,23 @@ fn ppc_slice_shares_rnd_seed_in_both_directions() {
 }
 
 #[test]
+fn native_launch_publishes_a_system_resource_fcb_on_the_boot_volume() {
+    let mut app = halted_ppc_app_with_sound(PpcSoundState::default());
+    app.ppc.as_mut().unwrap().set_launched_app_path("Games/Test");
+    let mut runner = FixtureRunner::new(8 * 1024 * 1024, FixtureRunnerConfig::default());
+    runner.dispatcher.set_launched_app_path("Games/Test");
+    runner.init_app(&app);
+    let reference = runner.bus.read_word(addr::SYS_MAP);
+    assert_ne!(reference, 0);
+    assert_ne!(reference, runner.bus.read_word(addr::CUR_APREF_NUM));
+    let native = runner.native.application_mut().unwrap();
+    assert_eq!(native.memory.read_u16_be(addr::SYS_MAP), Some(reference));
+    let buffer = native.memory.read_u32_be(addr::FCB_S_PTR).unwrap();
+    let vcb = native.memory.read_u32_be(buffer + u32::from(reference) + 20).unwrap();
+    assert_eq!(native.memory.read_u16_be(vcb + 78), Some(crate::trap::dispatch::BOOT_VOLUME_REF_NUM as u16));
+}
+
+#[test]
 fn ppc_process_low_memory_has_immediate_bidirectional_visibility() {
     let mut app = halted_ppc_app_with_sound(PpcSoundState::default());
     app.ppc

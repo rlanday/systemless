@@ -6838,6 +6838,9 @@ impl TrapDispatcher {
     }
 
     pub(crate) fn internal_resource_refnum(bus: &MacMemoryBus, guest: u16) -> u16 {
+        if guest == 0 {
+            return bus.read_word(crate::memory::globals::addr::SYS_MAP);
+        }
         if guest == bus.read_word(crate::memory::globals::addr::CUR_APREF_NUM) {
             0
         } else {
