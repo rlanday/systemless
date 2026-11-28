@@ -9968,30 +9968,47 @@ fn pbhopendf_resolves_a_file_from_a_mounted_volume_root() {
 
 #[test]
 fn extracted_volume_rejects_write_open_and_fswrite() {
-    let (mut disp, mut cpu, mut bus) = setup();
-    let volume_ref =
-        disp.mount_vfs_volume("Legend CD", 0x0080, 1, 1024, 512, 512, 900, 0, 0, 0, 0, 0, 0);
-    let file_name = "Legend CD/Legend";
-    disp.vfs.insert(file_name.to_string(), vec![1, 2, 3]);
+    // A hardware lock (vcbAtrb bit 7) and a software lock (bit 15) both make
+    // the volume read-only (Inside Macintosh Volume II (1985), p. II-126).
+    for attributes in [0x0080, 0x8000] {
+        let (mut disp, mut cpu, mut bus) = setup();
+        let volume_ref = disp.mount_vfs_volume(
+            "Legend CD",
+            attributes,
+            1,
+            1024,
+            512,
+            512,
+            900,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+        );
+        let file_name = "Legend CD/Legend";
+        disp.vfs.insert(file_name.to_string(), vec![1, 2, 3]);
 
-    let pb = 0x300000u32;
-    setup_param_block(&mut bus, &mut cpu, pb, b"Legend CD/Legend");
-    bus.write_word(pb + 22, volume_ref as u16);
-    bus.write_byte(pb + 27, 3); // fsRdWrPerm
-    call(&mut disp, false, 0x00, &mut cpu, &mut bus).unwrap();
-    assert_eq!(cpu.read_reg(Register::D0) as i32, -44, "wPrErr");
+        let pb = 0x300000u32;
+        setup_param_block(&mut bus, &mut cpu, pb, b"Legend CD/Legend");
+        bus.write_word(pb + 22, volume_ref as u16);
+        bus.write_byte(pb + 27, 3); // fsRdWrPerm
+        call(&mut disp, false, 0x00, &mut cpu, &mut bus).unwrap();
+        assert_eq!(cpu.read_reg(Register::D0) as i32, -44, "wPrErr");
 
-    bus.write_byte(pb + 27, 1); // fsRdPerm
-    call(&mut disp, false, 0x00, &mut cpu, &mut bus).unwrap();
-    assert_eq!(cpu.read_reg(Register::D0), 0);
-    let ref_num = bus.read_word(pb + 24);
-    bus.write_word(pb + 24, ref_num);
-    bus.write_long(pb + 32, 0x310000);
-    bus.write_long(pb + 36, 1);
-    bus.write_byte(0x310000, 9);
-    call(&mut disp, false, 0x03, &mut cpu, &mut bus).unwrap();
-    assert_eq!(cpu.read_reg(Register::D0) as i32, -44, "wPrErr");
-    assert_eq!(disp.vfs.get(file_name), Some(&vec![1, 2, 3][..]));
+        bus.write_byte(pb + 27, 1); // fsRdPerm
+        call(&mut disp, false, 0x00, &mut cpu, &mut bus).unwrap();
+        assert_eq!(cpu.read_reg(Register::D0), 0);
+        let ref_num = bus.read_word(pb + 24);
+        bus.write_word(pb + 24, ref_num);
+        bus.write_long(pb + 32, 0x310000);
+        bus.write_long(pb + 36, 1);
+        bus.write_byte(0x310000, 9);
+        call(&mut disp, false, 0x03, &mut cpu, &mut bus).unwrap();
+        assert_eq!(cpu.read_reg(Register::D0) as i32, -44, "wPrErr");
+        assert_eq!(disp.vfs.get(file_name), Some(&vec![1, 2, 3][..]));
+    }
 }
 
 #[test]

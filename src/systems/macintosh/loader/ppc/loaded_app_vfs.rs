@@ -88,6 +88,7 @@ impl PpcLoadedApp {
                         ppc_open_resource_fork_access(
                             &path,
                             1,
+                            false,
                             &mut file_system.vfs_files,
                             &mut resources.vfs_resource_files,
                             &resources.vfs_resources,

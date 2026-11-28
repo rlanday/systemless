@@ -3582,6 +3582,13 @@ pub(super) fn ppc_fsp_open_df(
         Ok(path) => path,
         Err(err) => return err,
     };
+    let writable = match crate::systems::macintosh::file_manager::open_write_access(
+        i16::from(permission),
+        ppc_vfs_path_is_on_locked_volume(vfs_directories, vfs_volumes, &path),
+    ) {
+        Ok(writable) => writable,
+        Err(error) => return error,
+    };
     let ref_num = *next_file_ref_num;
     let Some(next_ref_num) = next_file_ref_num.checked_add(1) else {
         return PPC_PARAM_ERR;
@@ -3602,8 +3609,7 @@ pub(super) fn ppc_fsp_open_df(
         path,
         position: 0,
     });
-    if crate::systems::macintosh::file_manager::permission_grants_write(i16::from(permission), true)
-    {
+    if writable {
         writable_refnums.insert(ref_num as u16);
     }
     *next_file_ref_num = next_ref_num;
@@ -3637,6 +3643,7 @@ pub(super) fn ppc_fsp_open_rf(
         memory,
         &path,
         permission,
+        ppc_vfs_path_is_on_locked_volume(vfs_directories, vfs_volumes, &path),
         ref_num_out_ptr,
         vfs_files,
         vfs_resource_files,
@@ -3655,6 +3662,7 @@ pub(super) fn ppc_open_resource_fork_path(
     memory: &mut PpcSectionMem,
     path: &str,
     permission: u8,
+    volume_locked: bool,
     ref_num_out_ptr: u32,
     vfs_files: &mut ProcessVfsFileRecords,
     vfs_resource_files: &mut ProcessVfsResourceFileRecords,
@@ -3669,6 +3677,7 @@ pub(super) fn ppc_open_resource_fork_path(
     match ppc_open_resource_fork_access(
         path,
         permission,
+        volume_locked,
         vfs_files,
         vfs_resource_files,
         vfs_resources,
@@ -3690,6 +3699,7 @@ pub(super) fn ppc_open_resource_fork_path(
 pub(super) fn ppc_open_resource_fork_access(
     path: &str,
     permission: u8,
+    volume_locked: bool,
     vfs_files: &mut ProcessVfsFileRecords,
     vfs_resource_files: &mut ProcessVfsResourceFileRecords,
     vfs_resources: &[PpcVfsResourceRecord],
@@ -3697,6 +3707,10 @@ pub(super) fn ppc_open_resource_fork_access(
     writable_refnums: &mut HashSet<u16>,
     next_file_ref_num: &mut i16,
 ) -> Result<i16, i16> {
+    let writable = crate::systems::macintosh::file_manager::open_write_access(
+        i16::from(permission),
+        volume_locked,
+    )?;
     let ref_num = *next_file_ref_num;
     let next_ref_num = next_file_ref_num.checked_add(1).ok_or(PPC_PARAM_ERR)?;
     let Some(resource_index) = ppc_vfs_resource_file_index(vfs_resource_files, path) else {
@@ -3724,8 +3738,7 @@ pub(super) fn ppc_open_resource_fork_access(
         path: open_path,
         position: 0,
     });
-    if crate::systems::macintosh::file_manager::permission_grants_write(i16::from(permission), true)
-    {
+    if writable {
         writable_refnums.insert(ref_num as u16);
     }
     *next_file_ref_num = next_ref_num;
@@ -3771,6 +3784,18 @@ pub(super) fn ppc_h_open(
         cpu.gpr[6] as u8,
         cpu.gpr[7],
     )
+}
+
+/// Whether a VFS path lies on a mounted volume that is locked by hardware or
+/// software.
+pub(super) fn ppc_vfs_path_is_on_locked_volume(
+    vfs_directories: &[PpcVfsDirectory],
+    vfs_volumes: &[PpcVfsVolumeRecord],
+    path: &str,
+) -> bool {
+    process_volume_for_vfs_path(vfs_volumes, vfs_directories, path).is_some_and(|volume| {
+        crate::systems::macintosh::file_manager::volume_is_locked(volume.attributes)
+    })
 }
 
 pub(super) fn ppc_fs_open(
@@ -3868,12 +3893,13 @@ pub(super) fn ppc_open_data_fork_by_name(
     let Some(path) = path else {
         return PPC_FNF_ERR;
     };
-    let locked = process_volume_for_vfs_path(vfs_volumes, vfs_directories, &path)
-        .is_some_and(|volume| volume.attributes & 0x8080 != 0);
-    let permission = i16::from(permission);
-    if locked && crate::systems::macintosh::file_manager::permission_requests_write(permission) {
-        return -44; // wPrErr
-    }
+    let writable = match crate::systems::macintosh::file_manager::open_write_access(
+        i16::from(permission),
+        ppc_vfs_path_is_on_locked_volume(vfs_directories, vfs_volumes, &path),
+    ) {
+        Ok(writable) => writable,
+        Err(error) => return error,
+    };
     let ref_num = *next_file_ref_num;
     let Some(next_ref_num) = next_file_ref_num.checked_add(1) else {
         return PPC_PARAM_ERR;
@@ -3889,7 +3915,7 @@ pub(super) fn ppc_open_data_fork_by_name(
         path,
         position: 0,
     });
-    if crate::systems::macintosh::file_manager::permission_grants_write(permission, !locked) {
+    if writable {
         writable_refnums.insert(ref_num as u16);
     }
     *next_file_ref_num = next_ref_num;
@@ -3962,6 +3988,13 @@ pub(super) fn ppc_pbh_open_df(
     let Some(path) = path else {
         return ppc_complete_pb(memory, pb, PPC_FNF_ERR);
     };
+    let writable = match crate::systems::macintosh::file_manager::open_write_access(
+        i16::from(permission),
+        ppc_vfs_path_is_on_locked_volume(vfs_directories, vfs_volumes, &path),
+    ) {
+        Ok(writable) => writable,
+        Err(error) => return ppc_complete_pb(memory, pb, error),
+    };
     let ref_num = *next_file_ref_num;
     let Some(next_ref_num) = next_file_ref_num.checked_add(1) else {
         return ppc_complete_pb(memory, pb, PPC_PARAM_ERR);
@@ -3978,8 +4011,7 @@ pub(super) fn ppc_pbh_open_df(
         path,
         position: 0,
     });
-    if crate::systems::macintosh::file_manager::permission_grants_write(i16::from(permission), true)
-    {
+    if writable {
         writable_refnums.insert(ref_num as u16);
     }
     *next_file_ref_num = next_ref_num;

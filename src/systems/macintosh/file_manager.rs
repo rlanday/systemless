@@ -123,9 +123,44 @@ pub(crate) fn permission_grants_write(permission: i16, file_writable: bool) -> b
     file_writable && (permission == i16::from(FS_CUR_PERM) || permission_requests_write(permission))
 }
 
+/// vcbAtrb bits 7 and 15: the volume is locked by hardware or by software
+/// (Inside Macintosh Volume II (1985), p. II-126).
+pub(crate) const VOLUME_LOCKED_ATTRIBUTES: u16 = 0x8080;
+
+/// wPrErr: the volume is locked.
+pub(crate) const W_PR_ERR: i16 = -44;
+
+pub(crate) fn volume_is_locked(attributes: u16) -> bool {
+    attributes & VOLUME_LOCKED_ATTRIBUTES != 0
+}
+
+/// Whether an access path opened with `permission` on a file on a volume
+/// that is or isn't locked can write. An explicit write permission on a
+/// locked volume fails with wPrErr; fsCurPerm settles for read-only.
+pub(crate) fn open_write_access(permission: i16, volume_locked: bool) -> Result<bool, i16> {
+    if volume_locked && permission_requests_write(permission) {
+        return Err(W_PR_ERR);
+    }
+    Ok(permission_grants_write(permission, !volume_locked))
+}
+
 #[cfg(test)]
 mod permission_tests {
     use super::*;
+
+    #[test]
+    fn locked_volumes_refuse_explicit_writes_and_open_current_permission_read_only() {
+        assert_eq!(open_write_access(i16::from(FS_CUR_PERM), true), Ok(false));
+        assert_eq!(open_write_access(1, true), Ok(false));
+        for permission in 2..=4 {
+            assert_eq!(open_write_access(permission, true), Err(W_PR_ERR));
+            assert_eq!(open_write_access(permission, false), Ok(true));
+        }
+        assert_eq!(open_write_access(i16::from(FS_CUR_PERM), false), Ok(true));
+        assert!(volume_is_locked(0x0080));
+        assert!(volume_is_locked(0x8000));
+        assert!(!volume_is_locked(0x0040));
+    }
 
     #[test]
     fn current_permission_writes_when_it_can_and_read_permission_never_does() {

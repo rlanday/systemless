@@ -4048,18 +4048,20 @@ impl super::TrapDispatcher {
                     self.find_vfs_file(&filename)
                 };
                 if let Some(vfs_name) = vfs_file {
-                    let read_only = self.vfs_path_is_read_only(&vfs_name);
-                    let requests_write = matches!(permission, 2 | 3 | 4);
-                    if requests_write && read_only {
-                        // Extracted disk-image volumes are mounted read-only;
-                        // fsCurPerm follows the volume permission and explicit
-                        // write modes fail with wPrErr.
-                        bus.write_word(pb + 16, (-44i16) as u16);
-                        cpu.write_reg(Register::D0, (-44i32) as u32);
-                        return Some(Ok(()));
-                    }
-                    let writable =
-                        file_manager::permission_grants_write(i16::from(permission), !read_only);
+                    // Extracted disk-image volumes are mounted locked;
+                    // fsCurPerm follows the volume permission and explicit
+                    // write modes fail with wPrErr.
+                    let writable = match file_manager::open_write_access(
+                        i16::from(permission),
+                        self.vfs_path_is_read_only(&vfs_name),
+                    ) {
+                        Ok(writable) => writable,
+                        Err(err) => {
+                            bus.write_word(pb + 16, err as u16);
+                            cpu.write_reg(Register::D0, err as i32 as u32);
+                            return Some(Ok(()));
+                        }
+                    };
                     let refnum = match self.allocate_data_file_fcb(bus, &vfs_name, writable) {
                         Ok(refnum) => refnum,
                         Err(err) => {

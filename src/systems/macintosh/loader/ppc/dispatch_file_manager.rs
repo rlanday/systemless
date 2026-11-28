@@ -263,6 +263,7 @@ pub(super) fn ppc_dispatch_file_manager(
                     memory,
                     &path,
                     cpu.gpr[6] as u8,
+                    ppc_vfs_path_is_on_locked_volume(vfs_directories, vfs_volumes, &path),
                     cpu.gpr[7],
                     vfs_files,
                     vfs_resource_files,
@@ -689,18 +690,22 @@ fn ppc_pb_open_rf(
         application_working_directory_ref_num,
         working_directories,
     ) {
-        Ok((_, _, parent, name)) => ppc_open_resource_fork_path(
-            memory,
-            &ppc_join_vfs_path(&parent, &name),
-            permission,
-            pb + 24,
-            vfs_files,
-            vfs_resource_files,
-            vfs_resources,
-            files,
-            writable_refnums,
-            next_file_ref_num,
-        ),
+        Ok((_, _, parent, name)) => {
+            let path = ppc_join_vfs_path(&parent, &name);
+            ppc_open_resource_fork_path(
+                memory,
+                &path,
+                permission,
+                ppc_vfs_path_is_on_locked_volume(vfs_directories, vfs_volumes, &path),
+                pb + 24,
+                vfs_files,
+                vfs_resource_files,
+                vfs_resources,
+                files,
+                writable_refnums,
+                next_file_ref_num,
+            )
+        }
         Err(error) => error,
     };
     ppc_complete_pb(memory, pb, result)

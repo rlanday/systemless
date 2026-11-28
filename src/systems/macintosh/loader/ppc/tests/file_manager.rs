@@ -13802,3 +13802,86 @@ fn fs_open_then_write_respects_the_resolved_volume() {
         }
     }
 }
+
+#[test]
+fn every_open_honours_a_locked_volume() {
+    // FSpOpenDF, PBHOpenDF and FSpOpenRF follow the same rule as FSOpen: on
+    // a volume locked by hardware or software (vcbAtrb bits 7 and 15, Inside
+    // Macintosh Volume II (1985), p. II-126), fsCurPerm opens read-only and
+    // an explicit write permission fails with wPrErr.
+    const DISC_VREF: i16 = -2;
+    const W_PR_ERR: i16 = -44;
+    let disc_root = PPC_FIRST_DYNAMIC_DIR_ID + 1;
+    for attributes in [0x0080, 0x8000] {
+        for target in [
+            PpcImportDispatcherTarget::FSpOpenDF,
+            PpcImportDispatcherTarget::PBHOpenDF,
+            PpcImportDispatcherTarget::FSpOpenRF,
+        ] {
+            for (permission, expected) in [(0u8, PPC_NO_ERR), (3, W_PR_ERR)] {
+                let mut loaded = load_folder_named_like_a_file(b"FSpOpenDF");
+                loaded.seed_vfs_volumes(vec![PpcVfsVolumeRecord {
+                    ref_num: DISC_VREF,
+                    name: "Disc".into(),
+                    root_dir_id: disc_root,
+                    attributes,
+                    file_count: 1,
+                    allocation_block_count: 1,
+                    allocation_block_size: 512,
+                    clump_size: 512,
+                    free_blocks: 0,
+                    bitmap_start: 0,
+                    allocation_pointer: 0,
+                    allocation_start: 0,
+                    next_catalog_id: 100,
+                    created_date: 0,
+                    modified_date: 0,
+                }]);
+                loaded.push_vfs_resource_file(PpcVfsResourceFileRecord {
+                    path: "Disc/Game".to_string(),
+                    creator: 0,
+                    file_type: 0,
+                    finder_flags: 0,
+                    resource_len: 4,
+                    raw_data: Some(b"fork".to_vec().into()),
+                    map_attrs: 0,
+                    dirty: false,
+                });
+                let scratch = PPC_DATA_BASE + 0x1000;
+                let name = scratch + 64;
+                let ref_num_out = scratch + 120;
+                write_ppc_pstring(&mut loaded.memory, name, b"Game");
+                let files_before = loaded.files.len();
+                let ref_num = if target == PpcImportDispatcherTarget::PBHOpenDF {
+                    let pb = scratch;
+                    loaded.memory.write_u32_be(pb + 18, name).unwrap();
+                    loaded.memory.write_u16_be(pb + 22, DISC_VREF as u16).unwrap();
+                    loaded.memory.write_u8(pb + 27, permission).unwrap();
+                    loaded.memory.write_u32_be(pb + 48, disc_root).unwrap();
+                    loaded.cpu.gpr[3] = pb;
+                    run_test_import(&mut loaded, target);
+                    loaded.memory.read_u16_be(pb + 24)
+                } else {
+                    // FSSpec: vRefNum, parID, name.
+                    let spec = scratch;
+                    loaded.memory.write_u16_be(spec, DISC_VREF as u16).unwrap();
+                    loaded.memory.write_u32_be(spec + 2, disc_root).unwrap();
+                    write_ppc_pstring(&mut loaded.memory, spec + 6, b"Game");
+                    loaded.cpu.gpr[3] = spec;
+                    loaded.cpu.gpr[4] = u32::from(permission);
+                    loaded.cpu.gpr[5] = ref_num_out;
+                    run_test_import(&mut loaded, target);
+                    loaded.memory.read_u16_be(ref_num_out)
+                };
+                let case = format!("{target:?} permission {permission} attributes {attributes:#x}");
+                assert_eq!(loaded.cpu.gpr[3], ppc_i16_result(expected), "{case}");
+                if expected == PPC_NO_ERR {
+                    let ref_num = ref_num.unwrap();
+                    assert!(!loaded.writable_refnums.contains(&ref_num), "{case}");
+                } else {
+                    assert_eq!(loaded.files.len(), files_before, "{case}");
+                }
+            }
+        }
+    }
+}

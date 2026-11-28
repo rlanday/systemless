@@ -5125,8 +5125,9 @@ impl TrapDispatcher {
     /// Return whether the path's mounted volume has its hardware-lock bit.
     pub(crate) fn vfs_path_is_read_only(&self, path: &str) -> bool {
         let path = Self::resource_fork_backing_path(path).unwrap_or(path);
-        self.vfs_volume_for_path(path)
-            .is_some_and(|volume| volume.attributes & 0x0080 != 0)
+        self.vfs_volume_for_path(path).is_some_and(|volume| {
+            crate::systems::macintosh::file_manager::volume_is_locked(volume.attributes)
+        })
     }
 
     pub(crate) fn boot_volume_ref_num_u16() -> u16 {

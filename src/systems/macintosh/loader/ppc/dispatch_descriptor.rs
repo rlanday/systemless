@@ -261,17 +261,8 @@ fn open_descriptor(context: &mut dispatch_imports::PpcDispatchContext<'_>) -> Re
     if !exists(&path, context) && !mode.create {
         return Err(2);
     }
-    let volume_read_only = context.vfs_volumes.iter().any(|volume| {
-        volume.attributes & 0x8080 != 0
-            && ppc_directory_path_for_id(context.vfs_directories, volume.root_dir_id).is_some_and(
-                |root| {
-                    path.eq_ignore_ascii_case(root)
-                        || path
-                            .to_ascii_lowercase()
-                            .starts_with(&format!("{}/", root.to_ascii_lowercase()))
-                },
-            )
-    });
+    let volume_read_only =
+        ppc_vfs_path_is_on_locked_volume(context.vfs_directories, context.vfs_volumes, &path);
     if volume_read_only && (mode.writable || !exists(&path, context)) {
         return Err(30); // EROFS, MPW errno.h.
     }
@@ -349,6 +340,7 @@ fn open_descriptor(context: &mut dispatch_imports::PpcDispatchContext<'_>) -> Re
         ppc_open_resource_fork_access(
             &path,
             if mode.writable { 3 } else { 1 },
+            volume_read_only,
             context.vfs_files,
             context.vfs_resource_files,
             context.vfs_resources,
