@@ -3879,6 +3879,12 @@ pub(super) fn ppc_open_data_fork_by_name(
     let Some(path) = path else {
         return PPC_FNF_ERR;
     };
+    let locked = process_volume_for_vfs_path(vfs_volumes, vfs_directories, &path)
+        .is_some_and(|volume| volume.attributes & 0x8080 != 0);
+    let permission = i16::from(permission);
+    if locked && crate::systems::macintosh::file_manager::permission_requests_write(permission) {
+        return -44; // wPrErr
+    }
     let ref_num = *next_file_ref_num;
     let Some(next_ref_num) = next_file_ref_num.checked_add(1) else {
         return PPC_PARAM_ERR;
@@ -3894,8 +3900,7 @@ pub(super) fn ppc_open_data_fork_by_name(
         path,
         position: 0,
     });
-    if crate::systems::macintosh::file_manager::permission_grants_write(i16::from(permission), true)
-    {
+    if crate::systems::macintosh::file_manager::permission_grants_write(permission, !locked) {
         writable_refnums.insert(ref_num as u16);
     }
     *next_file_ref_num = next_ref_num;
