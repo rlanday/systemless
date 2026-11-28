@@ -13693,3 +13693,112 @@ fn legacy_create_and_delete_resolve_working_directory_from_sf_reply() {
         .iter()
         .any(|file| file.path == "Odyssey Folder/Wally!"));
 }
+
+#[test]
+fn fs_open_grants_read_write_access_whatever_the_volume_reference() {
+    // FSOpen(fileName, vRefNum, VAR refNum) has no permission parameter: it
+    // opens with fsCurPerm, so FSWrite then succeeds. Its vRefNum names the
+    // volume, not a permission: SimCity 2000 saves through vRefNum -1, whose
+    // low byte read as a permission ($FF) used to open the file read-only.
+    for vref in [0i16, PPC_BOOT_VOLUME_REF_NUM] {
+        let pef = synthetic_pef_with_import(b"FSOpen");
+        let mut loaded = load_pef_application(&pef).unwrap();
+        loaded.push_test_vfs_file(PpcVfsFileRecord {
+            path: "Disc/New City".to_string(),
+            data: b"city".to_vec().into(),
+            creator: u32::from_be_bytes(*b"SCDH"),
+            file_type: u32::from_be_bytes(*b"MCTY"),
+            finder_flags: 0,
+            dirty: false,
+        });
+        let scratch = PPC_DATA_BASE + 0x1000;
+        let name_ptr = scratch + 16;
+        loaded.memory.add_region(scratch, vec![0; 128]);
+        assert!(ppc_write_pstring_bytes(
+            &mut loaded.memory,
+            name_ptr,
+            format!(
+                "{}:Disc:New City",
+                crate::trap::TrapDispatcher::boot_volume_name()
+            )
+            .as_bytes()
+        ));
+        loaded.cpu.gpr[3] = name_ptr;
+        loaded.cpu.gpr[4] = vref as u16 as u32;
+        loaded.cpu.gpr[5] = scratch;
+
+        let probe = loaded.run_with_hle_imports(64);
+
+        assert_eq!(probe.unsupported_import_index, None);
+        assert_eq!(
+            loaded.cpu.gpr[3],
+            ppc_i16_result(PPC_NO_ERR),
+            "vRefNum {vref}"
+        );
+        let ref_num = loaded.memory.read_u16_be(scratch).unwrap();
+        assert!(
+            loaded.writable_refnums.contains(&ref_num),
+            "vRefNum {vref} must not open the file read-only"
+        );
+    }
+}
+
+#[test]
+fn fs_open_then_write_respects_the_resolved_volume() {
+    const DISC_VREF: i16 = -2;
+    for (attributes, name, vref) in [
+        (0, "Game", 32),
+        (0x0080, "Game", 32),
+        (0x8000, "Disc:Game", PPC_BOOT_VOLUME_REF_NUM),
+    ] {
+        let mut loaded = load_folder_named_like_a_file(b"FSOpen");
+        loaded.seed_vfs_volumes(vec![PpcVfsVolumeRecord {
+            ref_num: DISC_VREF,
+            name: "Disc".into(),
+            root_dir_id: PPC_FIRST_DYNAMIC_DIR_ID + 1,
+            attributes,
+            file_count: 1,
+            allocation_block_count: 1,
+            allocation_block_size: 512,
+            clump_size: 512,
+            free_blocks: 0,
+            bitmap_start: 0,
+            allocation_pointer: 0,
+            allocation_start: 0,
+            next_catalog_id: 100,
+            created_date: 0,
+            modified_date: 0,
+        }]);
+        loaded.working_directories.with_mut(|directories| {
+            directories.insert(32, ProcessWorkingDirectory {
+                ref_num: 32,
+                volume_ref_num: DISC_VREF,
+                dir_id: PPC_FIRST_DYNAMIC_DIR_ID + 1,
+                proc_id: 0,
+            });
+        });
+        let scratch = PPC_DATA_BASE + 0x1000;
+        write_ppc_pstring(&mut loaded.memory, scratch, name.as_bytes());
+        loaded.cpu.gpr[3] = scratch;
+        loaded.cpu.gpr[4] = vref as u16 as u32;
+        loaded.cpu.gpr[5] = scratch + 32;
+        run_test_import(&mut loaded, PpcImportDispatcherTarget::FSOpen);
+        assert_eq!(loaded.cpu.gpr[3], ppc_i16_result(PPC_NO_ERR));
+        loaded.cpu.gpr[3] = u32::from(loaded.memory.read_u16_be(scratch + 32).unwrap());
+        loaded.memory.write_u32_be(scratch + 40, 1).unwrap();
+        loaded.memory.write_u8(scratch + 44, b'I').unwrap();
+        loaded.cpu.gpr[4] = scratch + 40;
+        loaded.cpu.gpr[5] = scratch + 44;
+        run_test_import(&mut loaded, PpcImportDispatcherTarget::FSWrite);
+        let file = loaded.vfs_files.iter().find(|file| file.path == "Disc/Game").unwrap();
+        if attributes == 0 {
+            assert_eq!(loaded.cpu.gpr[3], ppc_i16_result(PPC_NO_ERR));
+            assert_eq!(file.data, b"Installer");
+            assert!(file.dirty);
+        } else {
+            assert_eq!(loaded.cpu.gpr[3], ppc_i16_result(PPC_WR_PERM_ERR));
+            assert_eq!(file.data, b"installer");
+            assert!(!file.dirty);
+        }
+    }
+}
