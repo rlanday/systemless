@@ -1838,22 +1838,39 @@ impl super::TrapDispatcher {
         if refnum == 0 {
             return false;
         }
-        let Some((file_name, bytes)) = (|| {
-            let resources = self.resources.as_ref()?;
-            let file = resources.files.get(&refnum)?;
-            if (file.map_attrs & Self::RES_MAP_READ_ONLY_ATTR) != 0 {
-                return None;
-            }
-            if !Self::resource_file_needs_writeback(
-                file,
-                Self::RES_CHANGED_ATTR as u8,
-                Self::RES_MAP_CHANGED_ATTR,
+        let Some(path) = self.resources.as_ref().and_then(|r| r.names.get(&refnum)).cloned() else {
+            return false;
+        };
+        self.flush_resource_file_to_path(bus, refnum, path)
+    }
+
+    pub(super) fn flush_application_resource_file(&mut self, bus: &MacMemoryBus) -> std::result::Result<(), i16> {
+        let file = self.resources.as_ref().and_then(|r| r.files.get(&0)).ok_or(-193i16)?;
+        if !Self::resource_file_needs_writeback(file, Self::RES_CHANGED_ATTR as u8, Self::RES_MAP_CHANGED_ATTR) {
+            return Ok(());
+        }
+        let path = self.launched_app_path().ok_or(-193i16)?.to_owned();
+        if self.vfs_volume_for_path(&path).is_some_and(|v| v.attributes & 0x8080 != 0) {
+            return Err(-44);
+        }
+        if self.locked_files.contains(&path) {
+            return Err(-45); // fLckdErr
+        }
+        if file.map_attrs & Self::RES_MAP_READ_ONLY_ATTR != 0 {
+            return Err(-61);
+        }
+        self.flush_resource_file_to_path(bus, 0, path).then_some(()).ok_or(-36)
+    }
+
+    fn flush_resource_file_to_path(&mut self, bus: &MacMemoryBus, refnum: u16, file_name: String) -> bool {
+        let Some(bytes) = (|| {
+            let file = self.resources.as_ref()?.files.get(&refnum)?;
+            if file.map_attrs & Self::RES_MAP_READ_ONLY_ATTR != 0 || !Self::resource_file_needs_writeback(
+                file, Self::RES_CHANGED_ATTR as u8, Self::RES_MAP_CHANGED_ATTR,
             ) {
                 return None;
             }
-            let file_name = resources.names.get(&refnum)?.clone();
-            let bytes = self.serialize_resource_file_map_for_writeback(bus, refnum, file)?;
-            Some((file_name, bytes))
+            self.serialize_resource_file_map_for_writeback(bus, refnum, file)
         })() else {
             return false;
         };
@@ -2728,7 +2745,7 @@ impl super::TrapDispatcher {
             // resFNotFound on missing refnum, result slot untouched on error path.
             (true, 0x1F6) => {
                 let sp = cpu.read_reg(Register::A7);
-                let refnum = bus.read_word(sp);
+                let refnum = Self::internal_resource_refnum(bus, bus.read_word(sp));
 
                 let attrs_opt = self
                     .resources
@@ -2773,7 +2790,7 @@ impl super::TrapDispatcher {
             (true, 0x1F7) => {
                 let sp = cpu.read_reg(Register::A7);
                 let attrs = bus.read_word(sp);
-                let refnum = bus.read_word(sp + 2);
+                let refnum = Self::internal_resource_refnum(bus, bus.read_word(sp + 2));
 
                 self.with_resource_manager_mut(|resource_manager| {
                     if let Some(file) = resource_manager

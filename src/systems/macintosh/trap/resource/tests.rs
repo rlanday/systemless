@@ -3513,6 +3513,41 @@ fn setresinfo_protected_resource_is_noop_with_resattrerr() {
 // ================================================================
 // 7e. GetResFileAttrs (0x1F6) / SetResFileAttrs (0x1F7)
 // ================================================================
+#[test]
+fn application_resource_file_refnum_roundtrips_map_attributes() {
+    let (mut disp, mut cpu, mut bus) = setup();
+    setup_resources(&mut disp, &mut bus, b"MASK", 3, &[0xCC]);
+    bus.write_word(addr::CUR_APREF_NUM, 2);
+    bus.write_word(TEST_SP, 0x0060);
+    bus.write_word(TEST_SP + 2, 2);
+    call_trap_word(&mut disp, 0xA9F7, &mut cpu, &mut bus).unwrap();
+
+    cpu.write_reg(Register::A7, TEST_SP);
+    bus.write_word(TEST_SP, 2);
+    bus.write_word(TEST_SP + 2, 0xBEEF);
+    call_trap_word(&mut disp, 0xA9F6, &mut cpu, &mut bus).unwrap();
+    assert_eq!(bus.read_word(0x0A60), 0);
+    assert_eq!(bus.read_word(TEST_SP + 2), 0x0060);
+    disp.set_launched_app_path("Disk/Application");
+    disp.locked_files.insert("Disk/Application".to_owned());
+    cpu.write_reg(Register::A7, TEST_SP);
+    bus.write_word(TEST_SP, 2);
+    call_trap_word(&mut disp, 0xA999, &mut cpu, &mut bus).unwrap();
+    assert_eq!(bus.read_word(0x0A60) as i16, -45);
+    assert!(!disp.vfs_rsrc.contains_key("Disk/Application"));
+    assert_eq!(disp.resources.as_ref().unwrap().files[&0].map_attrs, 0x0060);
+    disp.locked_files.remove("Disk/Application");
+    cpu.write_reg(Register::A7, TEST_SP);
+    bus.write_word(TEST_SP, 2);
+    call_trap_word(&mut disp, 0xA999, &mut cpu, &mut bus).unwrap();
+    assert_eq!(bus.read_word(0x0A60), 0);
+    let fork = crate::managers::resource::ResourceFork::parse(
+        disp.vfs_rsrc.get("Disk/Application").unwrap(),
+    ).unwrap();
+    assert_eq!(fork.resources().get(&(*b"MASK", 3)).unwrap().data, vec![0xCC]);
+
+}
+
 // Inside Macintosh Volume I (1985), p. I-126: GetResFileAttrs returns
 // the file map attribute word for a valid resource-file refNum.
 #[test]

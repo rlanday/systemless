@@ -6837,6 +6837,14 @@ impl TrapDispatcher {
         })
     }
 
+    pub(crate) fn internal_resource_refnum(bus: &MacMemoryBus, guest: u16) -> u16 {
+        if guest == bus.read_word(crate::memory::globals::addr::CUR_APREF_NUM) {
+            0
+        } else {
+            guest
+        }
+    }
+
     /// Translate the internal application-map key into its guest FCB reference.
     pub(crate) fn guest_current_resource_refnum(&self, bus: &MacMemoryBus) -> u16 {
         let refnum = self.current_resource_refnum();

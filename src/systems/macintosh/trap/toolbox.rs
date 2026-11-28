@@ -7671,7 +7671,7 @@ impl super::TrapDispatcher {
                 let sp = cpu.read_reg(Register::A7);
                 let refnum = bus.read_word(sp);
                 let cur_apref_num = bus.read_word(crate::memory::globals::addr::CUR_APREF_NUM);
-                let target_refnum = if refnum == cur_apref_num { 0 } else { refnum };
+                let target_refnum = Self::internal_resource_refnum(bus, refnum);
                 if trace_sound_enabled() || super::dispatch::trace_resfile_enabled() {
                     eprintln!(
                         "[RSRC] UseResFile refnum={} (target={}) name={:?}",
@@ -10677,7 +10677,8 @@ impl super::TrapDispatcher {
             // UpdateResFile ($A999): Validates refnum; clears resChanged on all resources in file per IM:I I-124
             (true, 0x199) => {
                 let sp = cpu.read_reg(Register::A7);
-                let refnum = bus.read_word(sp);
+                let guest_refnum = bus.read_word(sp);
+                let refnum = Self::internal_resource_refnum(bus, guest_refnum);
 
                 const RES_F_NOT_FOUND: i16 = -193;
 
@@ -10687,7 +10688,15 @@ impl super::TrapDispatcher {
                     .is_some_and(|r| r.files.contains_key(&refnum));
 
                 if file_exists {
-                    let _ = self.flush_resource_file_refnum(bus, refnum);
+                    if refnum == 0 && guest_refnum != 0 {
+                        if let Err(error) = self.flush_application_resource_file(bus) {
+                            bus.write_word(0x0A60, error as u16);
+                            cpu.write_reg(Register::A7, sp + 2);
+                            return Some(Ok(()));
+                        }
+                    } else {
+                        let _ = self.flush_resource_file_refnum(bus, refnum);
+                    }
                     // Clear resChanged on all resources in this file
                     self.with_resource_manager_mut(|resource_manager| {
                         if let Some(resources) = resource_manager.resources.as_mut() {
