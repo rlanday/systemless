@@ -6960,12 +6960,41 @@ impl TrapDispatcher {
         };
         bus.write_word(addr::FS_FCB_LEN, FCB_SIZE);
 
+        let volume_ref = self.volume_ref_num_for_vfs_path(path);
+        let vcb = self.volume_control_block(bus, volume_ref)?;
+        let metadata = self.vfs_file_metadata(path);
+        let len = if resource_fork {
+            self.vfs_rsrc.get(path).map_or(0, |data| data.len() as u32)
+        } else {
+            self.vfs.get(path).map_or(0, |data| data.len() as u32)
+        };
+        let fcb = buffer + refnum as u32;
+        bus.fill_bytes(fcb, FCB_SIZE as u32, 0);
+        bus.write_long(fcb, metadata.map_or(0, |file| file.file_id));
+        let flags = (if resource_fork { 0x0200 } else { 0 })
+            | (if writable { 0x0100 } else { 0 });
+        bus.write_word(fcb + 4, flags);
+        bus.write_long(fcb + 8, len);
+        bus.write_long(fcb + 12, len);
+        bus.write_long(fcb + 20, vcb);
+        bus.write_long(fcb + 50, metadata.map_or(0, |file| file.file_type));
+        bus.write_long(
+            fcb + 58,
+            metadata.map_or(2, |file| self.hfs_dir_id(volume_ref, file.parent_dir_id)),
+        );
+        let name = Self::hfs_name_from_vfs_component(Self::vfs_basename(path));
+        Self::write_pstring(bus, fcb + 62, &name.chars().take(31).collect::<String>());
+        Ok(refnum)
+    }
+
+    pub(crate) fn volume_control_block(
+        &self,
+        bus: &mut MacMemoryBus,
+        volume_ref: i16,
+    ) -> std::result::Result<u32, i16> {
+        use crate::memory::globals::addr;
         // Files 1992, pp. 2-79–2-83: fcbVPtr identifies the volume's VCB;
         // vcbVRefNum is the signed word at byte 78 of that record.
-        let volume_ref = self
-            .vfs_volume_for_path(path)
-            .map(|volume| volume.ref_num)
-            .unwrap_or(BOOT_VOLUME_REF_NUM);
         let mut vcb = bus.read_long(addr::VCB_Q_HDR + 2);
         while vcb != 0 && bus.read_word(vcb + 78) != volume_ref as u16 {
             vcb = bus.read_long(vcb);
@@ -6995,29 +7024,7 @@ impl TrapDispatcher {
             }
             bus.write_long(addr::VCB_Q_HDR + 6, vcb);
         }
-        let metadata = self.vfs_file_metadata(path);
-        let len = if resource_fork {
-            self.vfs_rsrc.get(path).map_or(0, |data| data.len() as u32)
-        } else {
-            self.vfs.get(path).map_or(0, |data| data.len() as u32)
-        };
-        let fcb = buffer + refnum as u32;
-        bus.fill_bytes(fcb, FCB_SIZE as u32, 0);
-        bus.write_long(fcb, metadata.map_or(0, |file| file.file_id));
-        let flags = (if resource_fork { 0x0200 } else { 0 })
-            | (if writable { 0x0100 } else { 0 });
-        bus.write_word(fcb + 4, flags);
-        bus.write_long(fcb + 8, len);
-        bus.write_long(fcb + 12, len);
-        bus.write_long(fcb + 20, vcb);
-        bus.write_long(fcb + 50, metadata.map_or(0, |file| file.file_type));
-        bus.write_long(
-            fcb + 58,
-            metadata.map_or(2, |file| self.hfs_dir_id(volume_ref, file.parent_dir_id)),
-        );
-        let name = Self::hfs_name_from_vfs_component(Self::vfs_basename(path));
-        Self::write_pstring(bus, fcb + 62, &name.chars().take(31).collect::<String>());
-        Ok(refnum)
+        Ok(vcb)
     }
 
     pub(crate) fn allocate_data_file_fcb(

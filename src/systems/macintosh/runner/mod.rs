@@ -4178,6 +4178,10 @@ impl FixtureRunner {
         self.bus.write_long(addr::VCB_Q_HDR + 2, vcb_ptr);
         self.bus.write_long(addr::VCB_Q_HDR + 6, vcb_ptr);
 
+        let volume_ref = self.dispatcher.volume_ref_num_for_vfs_path(&app_path);
+        let Ok(app_vcb) = self.dispatcher.volume_control_block(&mut self.bus, volume_ref) else {
+            return;
+        };
         let fcb_buffer = self.bus.alloc(HFS_FCB_BUFFER_SIZE as u32);
         if fcb_buffer == 0 {
             return;
@@ -4190,9 +4194,10 @@ impl FixtureRunner {
         self.bus.write_word(fcb + 4, 0x0200); // fcbFlags bit 9: resource fork
         self.bus.write_long(fcb + 8, resource_len);
         self.bus.write_long(fcb + 12, resource_len);
-        self.bus.write_long(fcb + 20, vcb_ptr);
+        self.bus.write_long(fcb + 20, app_vcb);
         self.bus.write_long(fcb + 50, metadata.file_type);
-        self.bus.write_long(fcb + 58, metadata.parent_dir_id);
+        let parent = self.dispatcher.hfs_dir_id(volume_ref, metadata.parent_dir_id);
+        self.bus.write_long(fcb + 58, parent);
         let app_name = crate::trap::dispatch::TrapDispatcher::vfs_basename(&app_path).to_string();
         self.write_fixed_pstring(fcb + 62, &app_name, 31);
 

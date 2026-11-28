@@ -186,6 +186,41 @@ fn init_app_seeds_current_application_fcb_low_memory_state() {
 }
 
 #[test]
+fn launch_volume_owns_the_application_resource_fcb() {
+    let mut runner = FixtureRunner::new(8 * 1024 * 1024, FixtureRunnerConfig::default());
+    let disk = runner.dispatcher_mut().mount_vfs_volume(
+        "Install Disk", 0, 2, 100, 512, 512, 90, 0, 0, 0, 100, 0, 0,
+    );
+    let path = "Install Disk/Installer";
+    runner.dispatcher_mut().set_vfs_entry_metadata(path, *b"APPL", *b"TEST", 0);
+    runner.dispatcher_mut().set_launched_app_path(path);
+    runner.dispatcher_mut().vfs.insert(path.into(), vec![]);
+    runner.dispatcher_mut().vfs.insert("Install Disk/Script".into(), vec![1]);
+    runner.dispatcher_mut().set_vfs_entry_metadata("Install Disk/Script", *b"TEXT", *b"TEST", 0);
+    runner.seed_current_application_file_manager_state();
+    let fcb = runner.bus.read_long(addr::FCB_S_PTR) + u32::from(runner.bus.read_word(addr::CUR_APREF_NUM));
+    assert_eq!(runner.bus.read_long(fcb + 58), 2);
+    let app_vcb = runner.bus.read_long(fcb + 20);
+    let boot_vcb = runner.bus.read_long(addr::DEF_VCB_PTR);
+    assert_ne!(app_vcb, boot_vcb);
+    assert_eq!(runner.bus.read_word(app_vcb + 78) as i16, disk);
+    assert_eq!(runner.bus.read_long(boot_vcb), app_vcb);
+    assert_eq!(runner.bus.read_long(addr::VCB_Q_HDR + 6), app_vcb);
+
+    let pb = runner.bus.alloc(128);
+    let name = runner.bus.alloc(256);
+    runner.bus.fill_bytes(pb, 128, 0);
+    runner.bus.write_long(pb + 18, name);
+    runner.bus.write_word(pb + 22, runner.bus.read_word(app_vcb + 78));
+    runner.bus.write_word(pb + 28, 2);
+    runner.m68k.cpu.write_reg(Register::A0, pb);
+    runner.dispatcher.dispatch(0xA00C, &mut runner.m68k.cpu, &mut runner.bus).unwrap();
+    assert_eq!(runner.m68k.cpu.read_reg(Register::D0), 0);
+    assert_eq!(runner.bus.read_pstring(name), b"Script");
+
+}
+
+#[test]
 fn init_app_seeds_68k_quickdraw_low_memory_defaults() {
     let mut runner = FixtureRunner::new(8 * 1024 * 1024, FixtureRunnerConfig::default());
     let app = LoadedApp {
