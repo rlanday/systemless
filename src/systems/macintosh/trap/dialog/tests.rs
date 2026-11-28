@@ -11770,6 +11770,57 @@
     }
 
     #[test]
+    fn te_text_box_draws_the_visible_part_of_a_short_line() {
+        let (mut disp, mut cpu, mut bus) = setup_with_port();
+        let port = 0x181000;
+        disp.current_port.with_mut(|current_port| *current_port = port);
+        disp.tx_size = 12;
+        bus.write_word(port + 74, 12);
+        let caller_clip = bus.read_long(port + 28);
+        let screen_base = bus.read_long(0x0824);
+        disp.set_screen_mode_for_test(screen_base, 64, 512, 342, 1);
+        let metrics = crate::quickdraw::text::get_font_metrics(disp.tx_font, disp.tx_size);
+        let full_height = (metrics.ascent + metrics.descent) as u16;
+        let short_height = (metrics.ascent - 1) as u16;
+
+        let text = bus.alloc(1);
+        let rect = bus.alloc(8);
+        bus.write_byte(text, b'g');
+        bus.write_word(rect + 6, 24);
+        let mut draw_box = |top: u16, height: u16| {
+            bus.write_word(rect, top);
+            bus.write_word(rect + 4, top + height);
+            let sp = TEST_SP - 14;
+            cpu.write_reg(Register::A7, sp);
+            bus.write_word(sp, -1i16 as u16);
+            bus.write_long(sp + 2, rect);
+            bus.write_long(sp + 6, 1);
+            bus.write_long(sp + 10, text);
+            disp.dispatch_dialog(true, 0x1CE, &mut cpu, &mut bus)
+                .unwrap()
+                .unwrap();
+            assert_eq!(bus.read_long(port + 28), caller_clip);
+        };
+        draw_box(0, full_height);
+        draw_box(32, short_height);
+
+        let mut saw_visible_ink = false;
+        let mut saw_clipped_ink = false;
+        for row in 0..full_height {
+            let full = bus.read_bytes(screen_base + u32::from(row) * 64, 3);
+            let short = bus.read_bytes(screen_base + u32::from(32 + row) * 64, 3);
+            if row < short_height {
+                assert_eq!(short, full, "visible glyph row {row}");
+                saw_visible_ink |= full.iter().any(|&byte| byte != 0);
+            } else {
+                assert_eq!(short, [0; 3]);
+                saw_clipped_ink |= full.iter().any(|&byte| byte != 0);
+            }
+        }
+        assert!(saw_visible_ink && saw_clipped_ink);
+    }
+
+    #[test]
     fn te_text_box_erases_box_for_zero_length_text() {
         // Inside Macintosh: Text 1993, p. 2-88: the erase precedes text
         // drawing and is not conditional on the text length.

@@ -16352,10 +16352,17 @@ impl super::TrapDispatcher {
                             },
                         );
 
-                        // Draw each line
-                        let mut y = box_top + metrics.ascent;
+                        // Draw visible portions of lines that intersect the box,
+                        // including a final line whose descent extends below it.
+                        let port = *self.current_port;
+                        let saved_clip = self.te_install_view_clip(
+                            bus,
+                            port,
+                            (box_top, box_left, box_bottom, box_right),
+                        );
+                        let mut line_top = box_top;
                         for line in &lines {
-                            if y + metrics.descent > box_bottom {
+                            if line_top >= box_bottom {
                                 break;
                             }
                             let lw = measure(line.start, line.visible_end);
@@ -16371,12 +16378,15 @@ impl super::TrapDispatcher {
                                 align,
                                 Self::TE_LINE_LEFT_INSET,
                             );
-                            self.pn_loc = (y, x);
+                            self.pn_loc = (line_top + metrics.ascent, x);
                             let mut erased_right = None;
                             for &byte in &text_bytes[line.start..line.visible_end] {
                                 self.draw_run_char(cpu, bus, byte as char, &mut erased_right);
                             }
-                            y += line_height;
+                            line_top = line_top.saturating_add(line_height);
+                        }
+                        if let Some(clip) = saved_clip {
+                            bus.write_long(port + 28, clip);
                         }
                     }
                 }
