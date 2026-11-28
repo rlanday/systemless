@@ -65,6 +65,8 @@ compatibility:
       68K browser play remain unverified.
     status: playable
     evidence: https://github.com/benletchford/systemless/issues/6778
+runtime:
+  screen_depth: 8
 artifacts:
 - id: archive
   role: archive
@@ -118,6 +120,8 @@ references:
 Gridz combines territorial strategy with a three-dimensional board. This entry
 preserves the complete version 1.2 demo installer, including its original terms
 and data.
+
+Systemless starts the demo in its required 256-colour mode.
 
 The PowerPC version reaches a new game and accepts a board click in bounded
 native and headless browser testing against the hosted installer. Longer play

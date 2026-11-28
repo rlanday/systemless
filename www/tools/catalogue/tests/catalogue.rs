@@ -234,6 +234,20 @@ fn flight_unlimited_starts_with_256_colors() {
 }
 
 #[test]
+fn gridz_starts_with_256_colors() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let source = load(&root, Mode::Preview).unwrap();
+    let games = compiled(&source);
+    let gridz = games
+        .entries
+        .iter()
+        .find(|entry| entry.id == "gridz")
+        .unwrap();
+
+    assert_eq!(gridz.runtime.screen_depth, Some(8));
+}
+
+#[test]
 fn empty_directory_marker_cannot_hide_content_or_missing_entries() {
     let root = repo();
     let marker = root.path().join("catalogue/.gitkeep");
