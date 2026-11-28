@@ -29,6 +29,8 @@ compatibility:
       archive.
     status: playable
     evidence: https://github.com/benletchford/systemless/issues/2573
+runtime:
+  screen_depth: 8
 artifacts:
 - id: archive
   role: archive
@@ -87,8 +89,9 @@ Looking Glass Technologies' official Macintosh demo provides one plane and one
 location from its full flight simulator. It retains the original readme and
 control chart in the same archive as the application and flight data.
 
-Choose "Switch to 256 Colors" and then "No, Thanks" at startup. Leave the
-introductory tour with Space, enter a pilot name and details, and navigate the
+Choose "No, Thanks" at the startup memory prompt. If you launch with a
+different display depth and see a colour prompt, choose "Switch to 256 Colors".
+Leave the introductory tour with Space, enter a pilot name and details, and navigate the
 FBO with Tab to "Fly the Pitts." Dismiss the plane-selection help, then choose
 "Start on Taxiway" to enter the cockpit. The demo deliberately disables the hoop
 course and lesson options; neither requires a retail copy to take the permitted
