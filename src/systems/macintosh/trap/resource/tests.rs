@@ -3513,7 +3513,7 @@ fn setresinfo_protected_resource_is_noop_with_resattrerr() {
 // ================================================================
 // 7e. GetResFileAttrs (0x1F6) / SetResFileAttrs (0x1F7)
 // ================================================================
-// Inside Macintosh Volume I (1985), p. I-126: GetResFileAttrs returns
+// Inside Macintosh Volume I (1985), p. I-127: GetResFileAttrs returns
 // the file map attribute word for a valid resource-file refNum.
 #[test]
 fn getresfileattrs_returns_only_documented_map_attr_bits_for_open_resource_file() {
@@ -3531,7 +3531,7 @@ fn getresfileattrs_returns_only_documented_map_attr_bits_for_open_resource_file(
     assert_eq!(bus.read_word(0x0A60), 0);
 }
 
-// Inside Macintosh Volume I (1985), p. I-126: if refNum is unknown,
+// Inside Macintosh Volume I (1985), p. I-127: if refNum is unknown,
 // GetResFileAttrs does nothing and returns resFNotFound in ResError.
 #[test]
 fn getresfileattrs_missing_refnum_sets_resfnotfound_and_preserves_result_slot() {
@@ -3548,7 +3548,7 @@ fn getresfileattrs_missing_refnum_sets_resfnotfound_and_preserves_result_slot() 
     assert_eq!(bus.read_word(0x0A60) as i16, -193);
 }
 
-// Inside Macintosh Volume I (1985), p. I-126: GetResFileAttrs is a
+// Inside Macintosh Volume I (1985), p. I-127: GetResFileAttrs is a
 // Pascal FUNCTION that consumes one INTEGER refNum and writes one
 // INTEGER result slot.
 #[test]
@@ -3567,7 +3567,7 @@ fn getresfileattrs_consumes_refnum_and_result_slot() {
     assert_eq!(bus.read_word(TEST_SP + 2), 0x0020);
 }
 
-// Inside Macintosh Volume I (1985), p. I-126: SetResFileAttrs takes
+// Inside Macintosh Volume I (1985), p. I-127: SetResFileAttrs takes
 // refNum + attrs and mutates the target file map attributes.
 #[test]
 fn setresfileattrs_consumes_refnum_and_attrs_arguments() {
@@ -3595,7 +3595,7 @@ fn setresfileattrs_consumes_refnum_and_attrs_arguments() {
     );
 }
 
-// Inside Macintosh Volume I (1985), p. I-126 lists only the
+// Inside Macintosh Volume I (1985), p. I-127 lists only the
 // mapReadOnly/mapCompact/mapChanged bits as public resource-file
 // attributes; undefined bits are ignored by SetResFileAttrs and not
 // surfaced by GetResFileAttrs.
@@ -3624,6 +3624,39 @@ fn setresfileattrs_getresfileattrs_roundtrip_only_documented_bits() {
         0x00E0
     );
     assert_eq!(bus.read_word(TEST_SP + 2), 0x00E0);
+    assert_eq!(bus.read_word(0x0A60), 0);
+}
+
+// Inside Macintosh Volume I (1985), pp. I-125 and I-127: these calls name
+// a resource file by its reference number, and the application's own file
+// is CurApRefNum. The application map is kept under the internal key 0,
+// so each call must translate CurApRefNum, as UseResFile does.
+#[test]
+fn resource_file_calls_accept_the_applications_own_reference_number() {
+    const APP_REFNUM: u16 = 2;
+    let (mut disp, mut cpu, mut bus) = setup();
+    setup_resources(&mut disp, &mut bus, b"RFAT", 1, &[0xAA]);
+    bus.write_word(crate::memory::globals::addr::CUR_APREF_NUM, APP_REFNUM);
+
+    // SetResFileAttrs(CurApRefNum, mapReadOnly).
+    bus.write_word(TEST_SP, 0x0080);
+    bus.write_word(TEST_SP + 2, APP_REFNUM);
+    call(&mut disp, true, 0x1F7, &mut cpu, &mut bus).unwrap();
+    assert_eq!(bus.read_word(0x0A60), 0);
+
+    // GetResFileAttrs(CurApRefNum) finds the application map and the
+    // attribute just set.
+    cpu.write_reg(Register::A7, TEST_SP);
+    bus.write_word(TEST_SP, APP_REFNUM);
+    bus.write_word(TEST_SP + 2, 0xBEEF);
+    call(&mut disp, true, 0x1F6, &mut cpu, &mut bus).unwrap();
+    assert_eq!(bus.read_word(0x0A60), 0);
+    assert_eq!(bus.read_word(TEST_SP + 2), 0x0080);
+
+    // UpdateResFile(CurApRefNum).
+    cpu.write_reg(Register::A7, TEST_SP);
+    bus.write_word(TEST_SP, APP_REFNUM);
+    call_trap_word(&mut disp, 0xA999, &mut cpu, &mut bus).unwrap();
     assert_eq!(bus.read_word(0x0A60), 0);
 }
 

@@ -2710,9 +2710,9 @@ impl super::TrapDispatcher {
             // Returns the resource-map-level attribute INTEGER for an
             // open resource file.
             // FUNCTION GetResFileAttrs(refNum: INTEGER): INTEGER;
-            // Inside Macintosh Volume I, I-126
+            // Inside Macintosh Volume I, I-127
             //
-            // IM:I-126: "If there's no resource file with the given
+            // IM:I-127: "If there's no resource file with the given
             // reference number, GetResFileAttrs will do nothing and
             // the ResError function will return the result code
             // resFNotFound." — the result slot is left untouched on
@@ -2723,11 +2723,11 @@ impl super::TrapDispatcher {
             //   post: SP -> [result(2)]; pop 2 leaves 2.
             //
             // GetResFileAttrs ($A9F6): Returns the documented resource-map
-            // attribute bits (mapReadOnly/mapCompact/mapChanged) per IM:I-126;
+            // attribute bits (mapReadOnly/mapCompact/mapChanged) per IM:I-127;
             // resFNotFound on missing refnum, result slot untouched on error path.
             (true, 0x1F6) => {
                 let sp = cpu.read_reg(Register::A7);
-                let refnum = bus.read_word(sp);
+                let refnum = Self::resource_map_key(bus, bus.read_word(sp));
 
                 let attrs_opt = self
                     .resources
@@ -2752,9 +2752,9 @@ impl super::TrapDispatcher {
             // Sets the resource-map-level attribute INTEGER for an
             // open resource file.
             // PROCEDURE SetResFileAttrs(refNum: INTEGER; attrs: INTEGER);
-            // Inside Macintosh Volume I, I-126
+            // Inside Macintosh Volume I, I-127
             //
-            // IM:I-126: "If there's no resource file with the given
+            // IM:I-127: "If there's no resource file with the given
             // reference number, SetResFileAttrs will do nothing but
             // the ResError function will return the result code
             // noErr." — the only Resource Manager error path that
@@ -2767,12 +2767,12 @@ impl super::TrapDispatcher {
             //
             // SetResFileAttrs ($A9F7): Stores only the documented
             // resource-map attribute bits (mapReadOnly/mapCompact/mapChanged)
-            // per IM:I-126; missing refnum is a documented no-op that
+            // per IM:I-127; missing refnum is a documented no-op that
             // returns noErr (not resFNotFound — IM verbatim).
             (true, 0x1F7) => {
                 let sp = cpu.read_reg(Register::A7);
                 let attrs = bus.read_word(sp);
-                let refnum = bus.read_word(sp + 2);
+                let refnum = Self::resource_map_key(bus, bus.read_word(sp + 2));
 
                 self.with_resource_manager_mut(|resource_manager| {
                     if let Some(file) = resource_manager
@@ -2783,7 +2783,7 @@ impl super::TrapDispatcher {
                         file.map_attrs = attrs & 0x00E0;
                     }
                 });
-                // Both branches set ResErr to noErr per IM:I-126.
+                // Both branches set ResErr to noErr per IM:I-127.
                 bus.write_word(0x0A60, 0);
                 cpu.write_reg(Register::A7, sp + 4);
                 Ok(())

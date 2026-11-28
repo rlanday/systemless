@@ -7679,7 +7679,7 @@ impl super::TrapDispatcher {
                 let sp = cpu.read_reg(Register::A7);
                 let refnum = bus.read_word(sp);
                 let cur_apref_num = bus.read_word(crate::memory::globals::addr::CUR_APREF_NUM);
-                let target_refnum = if refnum == cur_apref_num { 0 } else { refnum };
+                let target_refnum = Self::resource_map_key(bus, refnum);
                 if trace_sound_enabled() || super::dispatch::trace_resfile_enabled() {
                     eprintln!(
                         "[RSRC] UseResFile refnum={} (target={}) name={:?}",
@@ -10678,12 +10678,12 @@ impl super::TrapDispatcher {
             // map to the resource file. In Systemless's HLE, clears resChanged
             // on all resources to simulate a successful flush.
             // PROCEDURE UpdateResFile(refNum: INTEGER);
-            // Inside Macintosh Volume I, I-124
+            // Inside Macintosh Volume I, I-125
             //
-            // UpdateResFile ($A999): Validates refnum; clears resChanged on all resources in file per IM:I I-124
+            // UpdateResFile ($A999): Validates refnum; clears resChanged on all resources in file per IM:I I-125
             (true, 0x199) => {
                 let sp = cpu.read_reg(Register::A7);
-                let refnum = bus.read_word(sp);
+                let refnum = Self::resource_map_key(bus, bus.read_word(sp));
 
                 const RES_F_NOT_FOUND: i16 = -193;
 
