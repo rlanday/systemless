@@ -106,8 +106,9 @@ galaxy editor.
 
 The archive contains the 68K demo application, its OIDS.LIB support file, and
 the Read Me from Apple's 1992 Macintosh Demo Games CD. It needs a 16-colour
-display mode. The introduction runs before the game offers player control;
-browser playback may take longer than the two to three minutes stated in the
-original Read Me.
+display mode. Wait for the “Now You Try!” screen, then press Space and let the
+warp animation finish. In live play, the Left and Right arrows rotate the
+ship. The handoff screen lists the remaining controls. The browser’s 8 MHz
+pacing can extend the wait beyond the two to three minutes in the Read Me.
 
 [Download the original demo files](https://assets.systemless.org/catalogue/objects/sha256/4a/4ad7264fedb00777a58558269aad0cd6aaafe31ae011bdb2869074f6a9d2799d.zip)
