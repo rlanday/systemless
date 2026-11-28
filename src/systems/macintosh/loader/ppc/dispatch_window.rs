@@ -1692,8 +1692,8 @@ pub(super) fn ppc_update_window_manager_regions(
         // Moving a window offsets the structure region its definition
         // calculated, keeping its shape.
         Some((_, old_content))
-            if old_content.2 - old_content.0 == content.2 - content.0
-                && old_content.3 - old_content.1 == content.3 - content.1 =>
+            if i32::from(old_content.2) - i32::from(old_content.0) == i32::from(content.2) - i32::from(content.0)
+                && i32::from(old_content.3) - i32::from(old_content.1) == i32::from(content.3) - i32::from(content.1) =>
         {
             if ppc_offset_rgn(
                 memory,

@@ -12159,6 +12159,11 @@ fn application_definition_structure_regions_follow_their_window() {
     );
 
     // A standard definition keeps its fixed frame geometry.
+    // QuickDraw coordinates are signed words, but a valid rect can span
+    // more than i16::MAX pixels.
+    let wide = (70, -20000, 110, 20000);
+    ppc_update_window_manager_regions(&mut loaded.memory, window, wide).unwrap();
+    assert_eq!(ppc_read_rgn_bbox(&mut loaded.memory, content_rgn), Some(wide));
     assert_eq!(
         ppc_window_structure_for_content(&mut loaded.memory, PPC_MAIN_GWORLD, moved),
         ppc_window_structure_bounds(0, moved)
